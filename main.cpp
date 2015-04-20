@@ -14,7 +14,7 @@ void applyArguments(int argc, const char* argv[]);
 
 int main(int argc, const char* argv[])
 {
-    printArguments(argc, argv);
+    //printArguments(argc, argv);
     applyArguments(argc, argv);
     return 0;
 }
@@ -47,6 +47,8 @@ void applyArguments(int argc, const char* argv[]){
 
             uint64_t memSize = (uint64_t) atoi(argv[i+3]);
             externalSort(fdInput, size, fdOutput, memSize);
+            bool isSorted = isFileSorted(fdOutput, size, memSize);
+            isSorted ? printf("SUCCESS: File %s is now sorted!", argv[i+2]) : printf("FAIL: File is not sorted.");
 
             if(close(fdInput) < 0) {
                 printf("Could not close file %s\n", argv[i+1]);
