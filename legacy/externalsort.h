@@ -9,6 +9,7 @@
 
 void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize);
 bool isFileSorted(int fd, uint64_t size, uint64_t memSize);
+void applyArguments(int argc, const char* argv[]);
 
 
 #endif //PROJECT_EXTERNALSORT_H

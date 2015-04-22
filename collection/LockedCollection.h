@@ -51,6 +51,28 @@ public:
     uint64_t size(){
         return content.size();
     }
+
+    /*
+    * Locks the collection during remove process.
+    * Removes the corresponding pair, if the collection contains the key.
+    * Throws and int exception NOT_FOUND otherwise
+    *
+    * use:
+    * try {
+    * ...
+    * }
+    * catch (int ex) {
+    *      if(ex == NOT_FOUND) ...;
+    * }
+    */
+    void remove(KEY_T key){
+        std::lock_guard<std::mutex> lock(content_mutex);
+        unsigned int got = content.erase(key);
+        if (got == 0) {
+            throw NOT_FOUND;
+        }
+    }
+
 private:
     std::unordered_map<KEY_T , ITEM_T> content;
     std::mutex content_mutex;
