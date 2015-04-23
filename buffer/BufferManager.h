@@ -29,7 +29,7 @@ public:
 private:
     uint64_t pageCountMax;
     uint64_t pageCount;
-    LockedCollection<uint64_t , BufferFrameWrapper> collection;
+    LockedCollection<uint64_t , BufferFrameWrapper*> collection;
     ReplacementStrategy replacementStrategy;
 
     BufferFrameWrapper createBufferFrame(uint64_t id);

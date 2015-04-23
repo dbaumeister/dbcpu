@@ -40,7 +40,7 @@ public:
      *      if(ex == NOT_FOUND) ...;
      * }
      */
-    ITEM_T find(KEY_T key){
+    ITEM_T &find(KEY_T key){
         std::lock_guard<std::mutex> lock(content_mutex);
         auto got = content.find(key);
         if (got == content.end()) {

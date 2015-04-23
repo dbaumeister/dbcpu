@@ -15,7 +15,7 @@ BufferFrame BufferManager::fixPage(uint64_t id, bool exclusive) {
     //TODO lock if already in use exclusively etc.
     try{
         // If we already have the BufferFrame -> we are golden!
-        BufferFrameWrapper bufferFrameWrapper =  collection.find(id);
+        BufferFrameWrapper bufferFrameWrapper =  *collection.find(id);
         // update our replacement strategy
         replacementStrategy.update(bufferFrameWrapper);
         return bufferFrameWrapper.getBufferFrame();
@@ -27,7 +27,7 @@ BufferFrame BufferManager::fixPage(uint64_t id, bool exclusive) {
             if(pageCount < pageCountMax){
                 //if we have not reached our maxPageCount -> create a BufferFrame
                 BufferFrameWrapper bufferFrameWrapper = createBufferFrame(id);
-                collection.insert(id, bufferFrameWrapper);
+                collection.insert(id, &bufferFrameWrapper);
                 ++pageCount;
                 // update replacement strategy
                 replacementStrategy.create(bufferFrameWrapper);
@@ -51,7 +51,7 @@ BufferFrame BufferManager::fixPage(uint64_t id, bool exclusive) {
                 }
 
                 bufferFrameWrapper = recreateBufferFrame(id, bufferFrameWrapper); //reuse bufferFrameWrappers allocated memory
-                collection.insert(id, bufferFrameWrapper);
+                collection.insert(id, &bufferFrameWrapper);
 
                 //update replacement strategy
                 replacementStrategy.create(bufferFrameWrapper);
@@ -67,9 +67,9 @@ void BufferManager::unfixPage(BufferFrame &frame, bool isDirty) {
     //TODO: free from exclusiveness
     if(isDirty){
         try{
-            BufferFrameWrapper bufferFrameWrapper =  collection.find(frame.getID()); //TODO teste, es könnte ein copy problem geben
+            BufferFrameWrapper bufferFrameWrapper =  *collection.find(frame.getID());
             bufferFrameWrapper.setDirty(isDirty);
-            replacementStrategy.update(bufferFrameWrapper); //siehe oben
+            replacementStrategy.update(bufferFrameWrapper);
 
         } catch (int exception) {
             if(exception == NOT_FOUND) {
@@ -95,12 +95,12 @@ BufferFrameWrapper BufferManager::recreateBufferFrame(uint64_t id, BufferFrameWr
 }
 
 BufferManager::~BufferManager() {
-    std::vector<BufferFrameWrapper> bufferFrameWrappers = collection.clear();
-    for(BufferFrameWrapper bufferFrameWrapper : bufferFrameWrappers) {
-        if(bufferFrameWrapper.isDirty()){
-            writeToDisk(bufferFrameWrapper); //write all dirty frames to disk
+    std::vector<BufferFrameWrapper*> bufferFrameWrappers = collection.clear();
+    for(BufferFrameWrapper* bufferFrameWrapper : bufferFrameWrappers) {
+        if(bufferFrameWrapper->isDirty()){
+            writeToDisk(*bufferFrameWrapper); //write all dirty frames to disk
         }
-        free(bufferFrameWrapper.getBufferFrame().getData()); //free all data to avoid memory leaks
+        free(bufferFrameWrapper->getBufferFrame().getData()); //free all data to avoid memory leaks
     }
 }
 
