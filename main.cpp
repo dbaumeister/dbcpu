@@ -11,31 +11,14 @@
 #include "collection/LockedCollection.h"
 #include "buffer/BufferFrame.h"
 #include "buffer/BufferFrameWrapper.h"
+#include "buffer/BufferManager.h"
 
 void printArguments(int argc, const char* argv[]);
 
 int main(int argc, const char* argv[])
 {
-    //printArguments(argc, argv);
-/*
-    LockedCollection<int, std::string> collection;
-    collection.insert(1, "a");
-    collection.insert(2, "b");
-    int e = 1;
-    try{
-        std::cout << collection.find(e) << std::endl;
-        std::cout << e << " found." << std::endl;
-    } catch (int exc){
-        if(exc == NOT_FOUND) std::cout << e << " not found." << std::endl;
-    }
-    collection.remove(e);
-    try{
-        std::cout << collection.find(e) << std::endl;
-        std::cout << e << " found." << std::endl;
-    } catch (int exc){
-        if(exc == NOT_FOUND) std::cout << e << " not found." << std::endl;
-    }
-*/
+    BufferManager bufferManager(3);
+    bufferManager.fixPage(1, false);
     return 0;
 }
 

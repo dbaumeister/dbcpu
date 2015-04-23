@@ -9,6 +9,7 @@
 #include <mutex>
 #include <vector>
 #include <unordered_map>
+#include <iostream>
 
 #define NOT_FOUND -1
 
@@ -80,7 +81,6 @@ public:
     std::vector<ITEM_T> clear(){
         std::lock_guard<std::mutex> lock(content_mutex);
         std::vector<ITEM_T> items;
-        items.reserve(content.size());
         for(auto kv : content){
             items.push_back(kv.second);
         }

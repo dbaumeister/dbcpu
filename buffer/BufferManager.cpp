@@ -23,7 +23,6 @@ BufferFrame BufferManager::fixPage(uint64_t id, bool exclusive) {
     } catch (int exception) {
         if(exception == NOT_FOUND) {
             //we did not find the BufferFrame
-
             if(pageCount < pageCountMax){
                 //if we have not reached our maxPageCount -> create a BufferFrame
                 BufferFrameWrapper bufferFrameWrapper = createBufferFrame(id);
@@ -95,8 +94,9 @@ BufferFrameWrapper BufferManager::recreateBufferFrame(uint64_t id, BufferFrameWr
 }
 
 BufferManager::~BufferManager() {
-    std::vector<BufferFrameWrapper*> bufferFrameWrappers = collection.clear();
-    for(BufferFrameWrapper* bufferFrameWrapper : bufferFrameWrappers) {
+    printf("Destructor\n");
+    for(BufferFrameWrapper* bufferFrameWrapper : collection.clear()) {
+        std::cout << bufferFrameWrapper->getBufferFrame().getID() << std::endl;
         if(bufferFrameWrapper->isDirty()){
             writeToDisk(*bufferFrameWrapper); //write all dirty frames to disk
         }
@@ -106,13 +106,14 @@ BufferManager::~BufferManager() {
 
 void BufferManager::writeToDisk(BufferFrameWrapper &bufferFrameWrapper) {
     //persists the frame data, should not be interrupted!
-    int fd = open(std::to_string(bufferFrameWrapper.getSegmentID()).c_str(), O_RDONLY | O_CREAT);
+    int fd = open(std::to_string(bufferFrameWrapper.getSegmentID()).c_str(), O_WRONLY | O_CREAT);
     if(fd < 0) {
         printf("Could not open data file.");
         throw IO_ERROR;
     }
     if(pwrite(fd, bufferFrameWrapper.getBufferFrame().getData(), PAGESIZE, bufferFrameWrapper.getPageID() * PAGESIZE) < 0) {
         printf("Could not write in data file.");
+        close(fd); //it does not matter, if we could close the file, as we are throwing an error anyway. at least we try to close it
         throw IO_ERROR;
     }
     if(close(fd) < 0) {
@@ -131,6 +132,7 @@ void BufferManager::readFromDisk(BufferFrameWrapper &bufferFrameWrapper) {
     }
     if(pread(fd, bufferFrameWrapper.getBufferFrame().getData(), PAGESIZE, bufferFrameWrapper.getPageID() * PAGESIZE) < 0) {
         printf("Could not read from data file.");
+        close(fd); //it does not matter if we could close the file, as we are throwing an error anyway. at least we try to close it
         throw IO_ERROR;
     }
     if(close(fd) < 0) {
