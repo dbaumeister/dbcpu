@@ -9,7 +9,7 @@ uint64_t BufferFrameWrapper::getID() {
 }
 
 uint16_t BufferFrameWrapper::getSegmentID() {
-    return bufferFrame.getID() >> 48;
+    return bufferFrame.getID() >> 48; //overflow is intended
 }
 
 uint64_t BufferFrameWrapper::getPageID() {
@@ -21,6 +21,14 @@ BufferFrame BufferFrameWrapper::getBufferFrame() {
     return bufferFrame;
 }
 
-void BufferFrameWrapper::setBufferFrame(BufferFrame frame) {
+void BufferFrameWrapper::setBufferFrame(BufferFrame &frame) {
     bufferFrame = frame;
+}
+
+bool BufferFrameWrapper::isDirty() {
+    return dirty;
+}
+
+void BufferFrameWrapper::setDirty(bool isDirty) {
+    dirty = isDirty;
 }

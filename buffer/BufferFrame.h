@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 
-#define PAGESIZE 16000 //Bytes todo: KiB or KB..
+#define PAGESIZE 16000 //Bytes
 
 class BufferFrame{
 public:

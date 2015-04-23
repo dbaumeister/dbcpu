@@ -12,32 +12,31 @@
 
 /*
  * Provides BufferManager with additional information about BufferFrame
- * Hides control informations from actors outside of the buffer system
+ * Hides control information from actors outside of the buffer system
  */
 class BufferFrameWrapper {
 public:
-    BufferFrameWrapper(uint16_t state, BufferFrame& bufferFrame)
-    : state(state), bufferFrame(bufferFrame) {}
+    BufferFrameWrapper(BufferFrame& bufferFrame)
+    : state(0), bufferFrame(bufferFrame), dirty(false) {}
 
-    BufferFrameWrapper(uint16_t state, uint64_t id, void* data)
-            : state(state), bufferFrame(BufferFrame(id, data)) {}
+    BufferFrameWrapper(uint64_t id, void* data)
+            : state(0), bufferFrame(BufferFrame(id, data)), dirty(false) {}
 
     uint64_t getID();
     uint16_t getSegmentID();
     uint64_t getPageID();
 
     bool isDirty();
-    bool isClean();
-
-    void setState(uint16_t newState);
+    void setDirty(bool isDirty);
 
     BufferFrame getBufferFrame();
-    void setBufferFrame(BufferFrame frame);
+    void setBufferFrame(BufferFrame &frame);
 
 private:
     //TODO: Latch (mutex)
-    uint16_t state; //State (e.g. dirty)
+    uint16_t state; //State for replacement Strategy
     BufferFrame bufferFrame;
+    bool dirty;
 };
 
 #endif //PROJECT_BUFFERFRAMEWRAPPER_H

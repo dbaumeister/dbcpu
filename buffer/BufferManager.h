@@ -15,10 +15,11 @@
 
 
 #define IO_ERROR -2
+#define BUFFER_ERROR -3
 
 class BufferManager{
 public:
-    BufferManager(uint64_t maxPageCount) : maxPageCount(maxPageCount), pageCount(0) {}
+    BufferManager(uint64_t maxPageCount) : pageCountMax(maxPageCount), pageCount(0) {}
 
     BufferFrame fixPage(uint64_t id, bool exclusive);
     void unfixPage(BufferFrame& frame, bool isDirty);
@@ -26,7 +27,7 @@ public:
     ~BufferManager();
 
 private:
-    uint64_t maxPageCount;
+    uint64_t pageCountMax;
     uint64_t pageCount;
     LockedCollection<uint64_t , BufferFrameWrapper> collection;
     ReplacementStrategy replacementStrategy;

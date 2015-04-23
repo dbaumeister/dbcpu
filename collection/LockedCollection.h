@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <mutex>
+#include <vector>
 #include <unordered_map>
 
 #define NOT_FOUND -1
@@ -71,6 +72,20 @@ public:
         if (got == 0) {
             throw NOT_FOUND;
         }
+    }
+
+    /*
+     * Clears collection and returns all items in a vector
+     */
+    std::vector<ITEM_T> clear(){
+        std::lock_guard<std::mutex> lock(content_mutex);
+        std::vector<ITEM_T> items;
+        items.reserve(content.size());
+        for(auto kv : content){
+            items.push_back(kv.second);
+        }
+        content.clear();
+        return items;
     }
 
 private:

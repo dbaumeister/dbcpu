@@ -4,12 +4,12 @@
 
 #include "ReplacementStrategy.h"
 
-void ReplacementStrategy::create(BufferFrameWrapper bufferFrameWrapper) {
+void ReplacementStrategy::create(BufferFrameWrapper &bufferFrameWrapper) {
     fifo.push(bufferFrameWrapper);
     update(bufferFrameWrapper);
 }
 
-void ReplacementStrategy::update(BufferFrameWrapper bufferFrameWrapper) {
+void ReplacementStrategy::update(BufferFrameWrapper &bufferFrameWrapper) {
 }
 
 BufferFrameWrapper ReplacementStrategy::pop() {

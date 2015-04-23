@@ -16,8 +16,8 @@
  */
 class ReplacementStrategy {
 public:
-    void update(BufferFrameWrapper bufferFrameWrapper); //the element was used -> update
-    void create(BufferFrameWrapper bufferFrameWrapper); //the element was created -> insert it
+    void update(BufferFrameWrapper &bufferFrameWrapper); //the element was used -> update
+    void create(BufferFrameWrapper &bufferFrameWrapper); //the element was created -> insert it
 
     BufferFrameWrapper pop(); //pops removable candidate - or nothing if we cannot remove anything (not the case for fifo)
 

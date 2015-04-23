@@ -24,7 +24,7 @@ BufferFrame BufferManager::fixPage(uint64_t id, bool exclusive) {
         if(exception == NOT_FOUND) {
             //we did not find the BufferFrame
 
-            if(pageCount < maxPageCount){
+            if(pageCount < pageCountMax){
                 //if we have not reached our maxPageCount -> create a BufferFrame
                 BufferFrameWrapper bufferFrameWrapper = createBufferFrame(id);
                 collection.insert(id, bufferFrameWrapper);
@@ -45,7 +45,10 @@ BufferFrame BufferManager::fixPage(uint64_t id, bool exclusive) {
 
                 //write the removable BufferFrame to disk DONT free its RAM, we will need it
                 // - important: only write to disk, when strategy makes space or BufferManagers Destructor is called
-                writeToDisk(bufferFrameWrapper);
+                if(bufferFrameWrapper.isDirty()){
+                    //only  write back to disk, if any change were done to the BufferFrame
+                    writeToDisk(bufferFrameWrapper);
+                }
 
                 bufferFrameWrapper = recreateBufferFrame(id, bufferFrameWrapper); //reuse bufferFrameWrappers allocated memory
                 collection.insert(id, bufferFrameWrapper);
@@ -59,30 +62,56 @@ BufferFrame BufferManager::fixPage(uint64_t id, bool exclusive) {
     }
 }
 
+
+void BufferManager::unfixPage(BufferFrame &frame, bool isDirty) {
+    //TODO: free from exclusiveness
+    if(isDirty){
+        try{
+            BufferFrameWrapper bufferFrameWrapper =  collection.find(frame.getID()); //TODO teste, es könnte ein copy problem geben
+            bufferFrameWrapper.setDirty(isDirty);
+            replacementStrategy.update(bufferFrameWrapper); //siehe oben
+
+        } catch (int exception) {
+            if(exception == NOT_FOUND) {
+                printf("Could not find frame.");
+            }
+        }
+    }
+}
+
 BufferFrameWrapper BufferManager::createBufferFrame(uint64_t id) {
     void* data = malloc(PAGESIZE);
-    BufferFrameWrapper bufferFrameWrapper = BufferFrameWrapper(STATE_NEW, id, data);
+    BufferFrameWrapper bufferFrameWrapper = BufferFrameWrapper(id, data);
     readFromDisk(bufferFrameWrapper);
     return bufferFrameWrapper;
 }
 
 BufferFrameWrapper BufferManager::recreateBufferFrame(uint64_t id, BufferFrameWrapper &bufferFrameWrapper) {
-    //Get BufferedFrames by reading from disk at id, create it when it does not exist
     //does the same as createBufferFrame but reuses its allocated memory
     void* data = bufferFrameWrapper.getBufferFrame().getData();
-    bufferFrameWrapper.setBufferFrame(BufferFrame(id, data));
+    bufferFrameWrapper = BufferFrameWrapper(id, data);
     readFromDisk(bufferFrameWrapper);
     return  bufferFrameWrapper;
 }
 
-void BufferManager::writeToDisk(BufferFrameWrapper &frame) {
+BufferManager::~BufferManager() {
+    std::vector<BufferFrameWrapper> bufferFrameWrappers = collection.clear();
+    for(BufferFrameWrapper bufferFrameWrapper : bufferFrameWrappers) {
+        if(bufferFrameWrapper.isDirty()){
+            writeToDisk(bufferFrameWrapper); //write all dirty frames to disk
+        }
+        free(bufferFrameWrapper.getBufferFrame().getData()); //free all data to avoid memory leaks
+    }
+}
+
+void BufferManager::writeToDisk(BufferFrameWrapper &bufferFrameWrapper) {
     //persists the frame data, should not be interrupted!
-    int fd = open(std::to_string(frame.getSegmentID()).c_str(), O_RDONLY | O_CREAT);
+    int fd = open(std::to_string(bufferFrameWrapper.getSegmentID()).c_str(), O_RDONLY | O_CREAT);
     if(fd < 0) {
         printf("Could not open data file.");
         throw IO_ERROR;
     }
-    if(pwrite(fd, frame.getBufferFrame().getData(), PAGESIZE, frame.getPageID() * PAGESIZE) < 0) {
+    if(pwrite(fd, bufferFrameWrapper.getBufferFrame().getData(), PAGESIZE, bufferFrameWrapper.getPageID() * PAGESIZE) < 0) {
         printf("Could not write in data file.");
         throw IO_ERROR;
     }
@@ -92,14 +121,15 @@ void BufferManager::writeToDisk(BufferFrameWrapper &frame) {
     };
 }
 
-void BufferManager::readFromDisk(BufferFrameWrapper &frame) {
+void BufferManager::readFromDisk(BufferFrameWrapper &bufferFrameWrapper) {
     //fill frames data
-    int fd = open(std::to_string(frame.getSegmentID()).c_str(), O_RDONLY | O_CREAT);
+    //Get BufferedFrames by reading from disk at id, create it when it does not exist
+    int fd = open(std::to_string(bufferFrameWrapper.getSegmentID()).c_str(), O_RDONLY | O_CREAT);
     if(fd < 0) {
         printf("Could not open data file.");
         throw IO_ERROR;
     }
-    if(pread(fd, frame.getBufferFrame().getData(), PAGESIZE, frame.getPageID() * PAGESIZE) < 0) {
+    if(pread(fd, bufferFrameWrapper.getBufferFrame().getData(), PAGESIZE, bufferFrameWrapper.getPageID() * PAGESIZE) < 0) {
         printf("Could not read from data file.");
         throw IO_ERROR;
     }
