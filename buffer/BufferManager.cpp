@@ -127,7 +127,7 @@ void BufferManager::writeToDisk(BufferFrameWrapper* bufferFrameWrapper) {
     //persists the frame data, should not be interrupted!
     std::string filePath = DATA_PATH_PREFIX + std::to_string(bufferFrameWrapper->getSegmentID());
 
-    printf("Trying to write to \"%s\" (pageID: %lu) ...\n", filePath.c_str(), bufferFrameWrapper->getPageID());
+    printf("DEBUG: Trying to write to \"%s\" (pageID: %lu) ...\n", filePath.c_str(), bufferFrameWrapper->getPageID());
 
     int fd = open(filePath.c_str(), O_WRONLY | O_CREAT);
     if(fd < 0) {
@@ -144,7 +144,7 @@ void BufferManager::writeToDisk(BufferFrameWrapper* bufferFrameWrapper) {
         throw IO_ERROR;
     };
 
-    printf("Writing to \"%s\" was successful!\n", filePath.c_str());
+    printf("DEBUG: Writing to \"%s\" was successful!\n", filePath.c_str());
 }
 
 void BufferManager::readFromDisk(BufferFrameWrapper* bufferFrameWrapper) {
