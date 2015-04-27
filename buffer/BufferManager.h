@@ -9,7 +9,7 @@
 
 #include "BufferFrame.h"
 #include "BufferFrameWrapper.h"
-#include "ReplacementStrategy.h"
+#include "replacement_strategies/ReplacementStrategy.h"
 #include "../collection/LockedCollection.h"
 #include "../exceptions/exceptions.h"
 
