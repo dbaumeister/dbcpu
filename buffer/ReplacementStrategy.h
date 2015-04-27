@@ -8,6 +8,7 @@
 #include <queue>
 
 #include "BufferFrameWrapper.h"
+#include "../exceptions/exceptions.h"
 
 
 /*
@@ -16,13 +17,13 @@
  */
 class ReplacementStrategy {
 public:
-    void update(BufferFrameWrapper &bufferFrameWrapper); //the element was used -> update
-    void create(BufferFrameWrapper &bufferFrameWrapper); //the element was created -> insert it
+    void onUpdate(BufferFrameWrapper* bufferFrameWrapper); //the element was used -> update
+    void onCreate(BufferFrameWrapper* bufferFrameWrapper); //the element was created -> insert it
 
-    BufferFrameWrapper pop(); //pops removable candidate - or nothing if we cannot remove anything (not the case for fifo)
+    BufferFrameWrapper* popRemovable(); //pops removable candidate - or nothing if we cannot remove anything (not the case for fifo)
 
 private:
-    std::queue<BufferFrameWrapper> fifo;
+    std::queue<BufferFrameWrapper*> fifo;
 };
 
 #endif //PROJECT_REPLACEMENTSTRATEGY_H

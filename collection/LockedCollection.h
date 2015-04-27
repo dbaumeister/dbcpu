@@ -10,8 +10,8 @@
 #include <vector>
 #include <unordered_map>
 #include <iostream>
+#include "../exceptions/exceptions.h"
 
-#define NOT_FOUND -1
 
 /*
  * Locks the collection during insert and find
@@ -41,11 +41,11 @@ public:
      *      if(ex == NOT_FOUND) ...;
      * }
      */
-    ITEM_T &find(KEY_T key){
+    ITEM_T find(KEY_T key){
         std::lock_guard<std::mutex> lock(content_mutex);
         auto got = content.find(key);
         if (got == content.end()) {
-            throw NOT_FOUND;
+            throw ITEM_NOT_FOUND_ERROR;
         }
         else return got->second;
     }
@@ -71,20 +71,27 @@ public:
         std::lock_guard<std::mutex> lock(content_mutex);
         unsigned int got = content.erase(key);
         if (got == 0) {
-            throw NOT_FOUND;
+            throw ITEM_NOT_FOUND_ERROR;
         }
     }
 
     /*
-     * Clears collection and returns all items in a vector
+     * Clears collection
      */
-    std::vector<ITEM_T> clear(){
+    void clear(){
+        std::lock_guard<std::mutex> lock(content_mutex);
+        content.clear();
+    }
+
+    /*
+     * returns all items in a vector
+     */
+    std::vector<ITEM_T> getAll(){
         std::lock_guard<std::mutex> lock(content_mutex);
         std::vector<ITEM_T> items;
         for(auto kv : content){
             items.push_back(kv.second);
         }
-        content.clear();
         return items;
     }
 

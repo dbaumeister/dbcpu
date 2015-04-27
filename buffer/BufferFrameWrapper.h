@@ -8,7 +8,6 @@
 
 #include "BufferFrame.h"
 
-#define STATE_NEW 1
 
 /*
  * Provides BufferManager with additional information about BufferFrame
@@ -16,11 +15,9 @@
  */
 class BufferFrameWrapper {
 public:
-    BufferFrameWrapper(BufferFrame& bufferFrame)
-    : state(0), bufferFrame(bufferFrame), dirty(false) {}
 
     BufferFrameWrapper(uint64_t id, void* data)
-            : state(0), bufferFrame(BufferFrame(id, data)), dirty(false) {}
+            : state(0), bufferFrame(BufferFrame(id, data)), dirty(false), exclusive(false) {}
 
     uint64_t getID();
     uint16_t getSegmentID();
@@ -29,14 +26,16 @@ public:
     bool isDirty();
     void setDirty(bool isDirty);
 
+    bool isExclusive();
+    void setExclusive(bool isExclusive);
+
     BufferFrame getBufferFrame();
-    void setBufferFrame(BufferFrame &frame);
 
 private:
     //TODO: Latch (mutex)
     uint16_t state; //State for replacement Strategy
     BufferFrame bufferFrame;
-    bool dirty;
+    bool dirty, exclusive;
 };
 
 #endif //PROJECT_BUFFERFRAMEWRAPPER_H

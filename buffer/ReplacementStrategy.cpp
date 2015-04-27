@@ -4,17 +4,21 @@
 
 #include "ReplacementStrategy.h"
 
-void ReplacementStrategy::create(BufferFrameWrapper &bufferFrameWrapper) {
+void ReplacementStrategy::onCreate(BufferFrameWrapper* bufferFrameWrapper) {
     fifo.push(bufferFrameWrapper);
-    update(bufferFrameWrapper);
+    onUpdate(bufferFrameWrapper);
 }
 
-void ReplacementStrategy::update(BufferFrameWrapper &bufferFrameWrapper) {
+void ReplacementStrategy::onUpdate(BufferFrameWrapper* bufferFrameWrapper) {
 }
 
-BufferFrameWrapper ReplacementStrategy::pop() {
+BufferFrameWrapper* ReplacementStrategy::popRemovable() {
     //The fifo queue is not empty, when we reach this point in our program.
-    BufferFrameWrapper bufferFrameWrapper = fifo.front();
+    BufferFrameWrapper* bufferFrameWrapper = fifo.front();
+    if(bufferFrameWrapper->isExclusive()) {
+        throw NO_REMOVABLE_FRAME_ERROR;
+    }
+
     fifo.pop();
     return bufferFrameWrapper;
 }

@@ -1,16 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/fcntl.h>
-#include <unistd.h>
-#include <cstdlib>
-#include <iostream>
 
-#include "legacy/externalsort.h"
-#include "collection/LockedCollection.h"
 #include "buffer/BufferFrame.h"
-#include "buffer/BufferFrameWrapper.h"
 #include "buffer/BufferManager.h"
 
 void printArguments(int argc, const char* argv[]);
@@ -18,7 +9,13 @@ void printArguments(int argc, const char* argv[]);
 int main(int argc, const char* argv[])
 {
     BufferManager bufferManager(3);
-    bufferManager.fixPage(1, false);
+    BufferFrame bufferFrame1 = bufferManager.fixPage(1, false);
+    BufferFrame bufferFrame2 = bufferManager.fixPage(2, false);
+    BufferFrame bufferFrame3 = bufferManager.fixPage(3, false);
+    bufferManager.unfixPage(bufferFrame1, true);
+    BufferFrame bufferFrame4 = bufferManager.fixPage(4, false);
+    BufferFrame bufferFrame5 = bufferManager.fixPage(5, false);
+
     return 0;
 }
 

@@ -6,16 +6,15 @@
 #define PROJECT_BUFFERMANAGER_H
 
 #include <stdint.h>
-//#include <unordered_map> //requires -std=c++11
 
 #include "BufferFrame.h"
 #include "BufferFrameWrapper.h"
 #include "ReplacementStrategy.h"
 #include "../collection/LockedCollection.h"
+#include "../exceptions/exceptions.h"
 
 
-#define IO_ERROR -2
-#define BUFFER_ERROR -3
+#define DATA_PATH_PREFIX "data"
 
 class BufferManager{
 public:
@@ -32,11 +31,11 @@ private:
     LockedCollection<uint64_t , BufferFrameWrapper*> collection;
     ReplacementStrategy replacementStrategy;
 
-    BufferFrameWrapper createBufferFrame(uint64_t id);
-    BufferFrameWrapper recreateBufferFrame(uint64_t id, BufferFrameWrapper &bufferFrameWrapper);
+    BufferFrameWrapper* createBufferFrame(uint64_t id);
+    BufferFrameWrapper* recreateBufferFrame(uint64_t id, BufferFrameWrapper* bufferFrameWrapper);
 
-    void writeToDisk(BufferFrameWrapper& frame); //low level function
-    void readFromDisk(BufferFrameWrapper& frame); //low level function, assumes that data is allready allocated
+    void writeToDisk(BufferFrameWrapper* frame); //low level function
+    void readFromDisk(BufferFrameWrapper* frame); //low level function, assumes that data is already allocated
 };
 
 #endif //PROJECT_BUFFERMANAGER_H
