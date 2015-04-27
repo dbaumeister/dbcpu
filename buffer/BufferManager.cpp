@@ -22,7 +22,7 @@ BufferFrame BufferManager::fixPage(uint64_t id, bool exclusive) {
             throw FRAME_ALREADY_IN_USE_ERROR;
         }
 
-        replacementStrategy.onUpdate(bufferFrameWrapper);
+        replacementStrategy.onUse(bufferFrameWrapper);
         return bufferFrameWrapper->getBufferFrame();
 
     } catch (int exception) {
@@ -86,7 +86,7 @@ void BufferManager::unfixPage(BufferFrame &frame, bool isDirty) {
             // we don't want to magically clean our pages
         }
         bufferFrameWrapper->setExclusive(false);
-        replacementStrategy.onUpdate(bufferFrameWrapper);
+        replacementStrategy.onUse(bufferFrameWrapper);
 
     } catch (int exception) {
         if(exception == ITEM_NOT_FOUND_ERROR) {

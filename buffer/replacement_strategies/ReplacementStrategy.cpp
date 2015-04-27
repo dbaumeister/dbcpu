@@ -6,10 +6,10 @@
 
 void ReplacementStrategy::onCreate(BufferFrameWrapper* bufferFrameWrapper) {
     fifo.push(bufferFrameWrapper);
-    onUpdate(bufferFrameWrapper);
+    onUse(bufferFrameWrapper);
 }
 
-void ReplacementStrategy::onUpdate(BufferFrameWrapper* bufferFrameWrapper) {
+void ReplacementStrategy::onUse(BufferFrameWrapper* bufferFrameWrapper) {
 }
 
 BufferFrameWrapper* ReplacementStrategy::popRemovable() {
