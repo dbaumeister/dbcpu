@@ -66,6 +66,8 @@ BufferFrame BufferManager::fixPage(uint64_t id, bool exclusive) {
                 }
 
                 bufferFrameWrapper = recreateBufferFrame(id, bufferFrameWrapper); //reuse bufferFrameWrappers allocated memory
+                bufferFrameWrapper->setExclusive(exclusive);
+
                 collection.insert(id, bufferFrameWrapper);
 
                 //update replacement strategy
