@@ -48,3 +48,15 @@ void BufferFrame::clearControlDataAndSetID(uint64_t id) {
     setExclusive(false);
     this->id = id;
 }
+
+void BufferFrame::lockRead() {
+    pthread_rwlock_rdlock(&frame_rwlock);
+}
+
+void BufferFrame::lockWrite() {
+    pthread_rwlock_wrlock(&frame_rwlock);
+}
+
+void BufferFrame::unlockFrame() {
+    pthread_rwlock_unlock(&frame_rwlock);
+}

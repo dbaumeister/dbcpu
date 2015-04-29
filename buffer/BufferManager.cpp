@@ -4,27 +4,22 @@
 
 
 #include <string>
-#include <sys/fcntl.h>
-#include <unistd.h>
-#include <pthread.h>
 
 #include "BufferManager.h"
 
 
-BufferFrame* BufferManager::fixPage(uint64_t id, bool exclusive) {
+BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
 
     try{
-        // If we already have the BufferFrame -> we are golden!
+        //Try to find the bufferFrame in our collection
         BufferFrame* bufferFrame =  collection.find(id);
-        // update our replacement strategy
 
-        //throw an error, if an exclusive frame is requested, but already in use
-        //TODO: instead of error: lock until the other competitor unfixes its frame and we can use it
-        if(exclusive) {
-            throw FRAME_ALREADY_IN_USE_ERROR;
-        }
+        //lock until the other competitor unfixes its frame and we can use it
+        //TODO deadlocks?
+        setExclusiveLock(bufferFrame, isExclusive);
 
-        replacementStrategy.onUse(bufferFrame);
+        replacementStrategy.onUse(bufferFrame); //maybe call before lock..
+
         return bufferFrame;
 
     } catch (int exception) {
@@ -33,7 +28,10 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool exclusive) {
             if(pageCount < pageCountMax){
                 //if we have not reached our maxPageCount -> create a BufferFrame
                 BufferFrame* bufferFrame = createBufferFrame(id);
-                bufferFrame->setExclusive(exclusive);
+
+                //lock until the other competitor unfixes its frame and we can use it
+                //TODO deadlocks?
+                setExclusiveLock(bufferFrame, isExclusive);
 
                 collection.insert(id, bufferFrame);
                 ++pageCount;
@@ -56,6 +54,8 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool exclusive) {
                     }
                 }
 
+                bufferFrame->unlockFrame();
+
                 //Remove the removable also from collection
                 collection.remove(bufferFrame->getID());
 
@@ -63,11 +63,13 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool exclusive) {
                 // - important: only write to disk, when strategy makes space or BufferManagers Destructor is called
                 if(bufferFrame->isDirty()){
                     //only  write back to disk, if any changes were done to the BufferFrame
-                    writeToDisk(bufferFrame);
+                    io.writeToDisk(bufferFrame);
                 }
 
                 bufferFrame = recreateBufferFrame(id, bufferFrame); //reuse bufferFrameWrappers allocated memory
-                bufferFrame->setExclusive(exclusive);
+                //lock until the other competitor unfixes its frame and we can use it
+                //TODO deadlocks?
+                setExclusiveLock(bufferFrame, isExclusive);
 
                 collection.insert(id, bufferFrame);
 
@@ -88,20 +90,33 @@ void BufferManager::unfixPage(BufferFrame* bufferFrame, bool isDirty) {
         // we don't want to magically clean our pages
     }
     bufferFrame->setExclusive(false);
+    bufferFrame->unlockFrame();
     replacementStrategy.onUse(bufferFrame);
+}
+
+
+void BufferManager::setExclusiveLock(BufferFrame *bufferFrame, bool isExclusive) {
+    if(isExclusive) {
+        bufferFrame->lockWrite();
+    }
+    else {
+        bufferFrame->lockRead();
+    }
+    bufferFrame->setExclusive(isExclusive);
+
 }
 
 BufferFrame* BufferManager::createBufferFrame(uint64_t id) {
     void* data = malloc(PAGESIZE);
     BufferFrame* bufferFrame = new BufferFrame(id, data);
-    readFromDisk(bufferFrame);
+    io.readFromDisk(bufferFrame);
     return bufferFrame;
 }
 
 BufferFrame* BufferManager::recreateBufferFrame(uint64_t id, BufferFrame* bufferFrame) {
     //Re-use bufferFrames allocated memory
     bufferFrame->clearControlDataAndSetID(id);
-    readFromDisk(bufferFrame);
+    io.readFromDisk(bufferFrame);
     return bufferFrame;
 }
 
@@ -109,58 +124,10 @@ BufferManager::~BufferManager() {
     std::vector<BufferFrame*> bufferFrames = collection.getAll();
     for(BufferFrame* bufferFrame : bufferFrames) {
         if(bufferFrame->isDirty()) {
-            writeToDisk(bufferFrame); //write all dirty frames to disk
+            io.writeToDisk(bufferFrame); //write all dirty frames to disk
         }
         delete(bufferFrame);
     }
+    io.closeFiles();
     collection.clear();
-}
-
-void BufferManager::writeToDisk(BufferFrame* bufferFrame) {
-    //persists the frame data, should not be interrupted!
-    std::string filePath = DATA_PATH_PREFIX + std::to_string(bufferFrame->getSegmentID());
-
-    printf("DEBUG: Trying to write to \"%s\" (pageID: %lu) ...\n", filePath.c_str(), bufferFrame->getPageID());
-
-    int fd = open(filePath.c_str(), O_WRONLY | O_CREAT);
-    if(fd < 0) {
-        printf("ERROR: Could not open data file \"%s\" for writing.", filePath.c_str());
-        throw IO_ERROR;
-    }
-    if(pwrite(fd, bufferFrame->getData(), PAGESIZE, bufferFrame->getPageID() * PAGESIZE) < 0) {
-        printf("ERROR: Could not write in data file.");
-        close(fd); //it does not matter, if we could close the file, as we are throwing an error anyway. at least we try to close it
-        throw IO_ERROR;
-    }
-    if(close(fd) < 0) {
-        printf("ERROR: Could not close data file.");
-        throw IO_ERROR;
-    };
-
-    printf("DEBUG: Writing to \"%s\" was successful!\n", filePath.c_str());
-}
-
-void BufferManager::readFromDisk(BufferFrame* bufferFrame) {
-    //fill frames data
-    //Get BufferedFrames by reading from disk at id, create it when it does not exist
-    std::string filePath = DATA_PATH_PREFIX + std::to_string(bufferFrame->getSegmentID());
-
-    printf("DEBUG: Trying to read from \"%s\" (pageID: %lu) ...\n", filePath.c_str(), bufferFrame->getPageID());
-
-    int fd = open(filePath.c_str(), O_RDONLY | O_CREAT);
-    if(fd < 0) {
-        printf("ERROR: Could not open data file \"%s\" for reading.", filePath.c_str());
-        throw IO_ERROR;
-    }
-    if(pread(fd, bufferFrame->getData(), PAGESIZE, bufferFrame->getPageID() * PAGESIZE) < 0) {
-        printf("ERROR: Could not read from data file.");
-        close(fd); //it does not matter if we could close the file, as we are throwing an error anyway. at least we try to close it
-        throw IO_ERROR;
-    }
-    if(close(fd) < 0) {
-        printf("ERROR: Could not close data file.");
-        throw IO_ERROR;
-    };
-
-    printf("DEBUG: Reading from \"%s\" was successful!\n", filePath.c_str());
 }

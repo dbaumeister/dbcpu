@@ -5,8 +5,8 @@
 #ifndef PROJECT_BUFFERFRAME_H
 #define PROJECT_BUFFERFRAME_H
 
-#include <stdint.h>
 #include <pthread.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 
@@ -15,11 +15,12 @@
 class BufferFrame{
 public:
     BufferFrame(uint64_t id, void* data) : id(id), data(data), exclusive(false), dirty(false), state(0) {
-        pthread_mutex_init(&frame_mutex, NULL);
+        pthread_rwlock_init(&frame_rwlock, NULL);
     }
 
     ~BufferFrame(){
-        pthread_mutex_destroy(&frame_mutex);
+        unlockFrame();
+        pthread_rwlock_destroy(&frame_rwlock);
         free(data);
     }
 
@@ -39,15 +40,19 @@ public:
 
     void setState(uint16_t state);
 
+    void lockRead();
+    void lockWrite();
+    void unlockFrame();
+
 private:
     void* data; //Data of PAGESIZE bytes
     uint64_t id;
 
-    //TODO: Latch (mutex)
     uint16_t state; //State for replacement Strategy
     bool dirty, exclusive;
 
-    pthread_mutex_t frame_mutex;
+    //Latch
+    pthread_rwlock_t frame_rwlock;
 };
 
 #endif //PROJECT_BUFFERFRAME_H
