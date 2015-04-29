@@ -30,8 +30,6 @@ private:
     ReplacementStrategy replacementStrategy;
     DiskIO io;
 
-    void setExclusiveLock(BufferFrame* bufferFrame, bool isExclusive);
-
     BufferFrame* createBufferFrame(uint64_t id);
     BufferFrame* recreateBufferFrame(uint64_t id, BufferFrame* bufferFrame);
 

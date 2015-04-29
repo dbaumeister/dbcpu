@@ -38,12 +38,8 @@ void BufferFrame::setDirty(bool isDirty) {
     dirty = isDirty;
 }
 
-void BufferFrame::setState(uint16_t state) {
-    this->state = state;
-}
 
 void BufferFrame::clearControlDataAndSetID(uint64_t id) {
-    setState(0);
     setDirty(false);
     setExclusive(false);
     this->id = id;
@@ -59,4 +55,22 @@ void BufferFrame::lockWrite() {
 
 void BufferFrame::unlockFrame() {
     pthread_rwlock_unlock(&frame_rwlock);
+}
+
+void BufferFrame::lockFrame(bool isExclusive) {
+    if(isExclusive) {
+        lockWrite();
+    }
+    else {
+        lockRead();
+    }
+    setExclusive(isExclusive);
+}
+
+bool BufferFrame::isFixed() {
+    return fixed;
+}
+
+void BufferFrame::setFixed(bool isFixed) {
+    fixed = isFixed;
 }

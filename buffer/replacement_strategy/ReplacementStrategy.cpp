@@ -5,20 +5,39 @@
 #include "ReplacementStrategy.h"
 
 void ReplacementStrategy::onCreate(BufferFrame* bufferFrame) {
-    fifo.push(bufferFrame);
-    onUse(bufferFrame);
+    //Always push back to fifo
+    fifo.push_back(bufferFrame);
 }
 
 void ReplacementStrategy::onUse(BufferFrame* bufferFrame) {
+    //Prio:
+    // 1. check if in fifo
+    // 2. only put dirty pages from fifo to lru
+    // 3. don't change the position of clean pages in fifo
+    // 4. check if in lru
+    // 5. remove from lru and push to back in lru
+    if(fifo.contains(bufferFrame) && bufferFrame->isDirty()){
+        fifo.remove(bufferFrame);
+        lru.push_back(bufferFrame);
+    }
+    else if(lru.contains(bufferFrame)) {
+        lru.remove(bufferFrame);
+        lru.push_back(bufferFrame);
+    }
 }
 
 BufferFrame* ReplacementStrategy::popRemovable() {
-    //The fifo queue is not empty, when we reach this point in our program.
-    BufferFrame* bufferFrame = fifo.front();
-    if(bufferFrame->isExclusive()) {
-        throw NO_REMOVABLE_FRAME_ERROR;
+    //Prio:
+    // 0. Only remove unfixed pages! return nullptr otherwise
+    // 1. take first clean page from fifo
+    // 2. take first dirty page from fifo
+    // 3. take first page from lru (only contains dirty pages)
+    BufferFrame* bufferFrame = fifo.pop_clean();
+    if(bufferFrame == nullptr){
+        bufferFrame = fifo.pop_unfixed();
+        if(bufferFrame == nullptr) {
+            bufferFrame = lru.pop_unfixed();
+        }
     }
-
-    fifo.pop();
     return bufferFrame;
 }

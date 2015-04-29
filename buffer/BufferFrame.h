@@ -14,7 +14,7 @@
 
 class BufferFrame{
 public:
-    BufferFrame(uint64_t id, void* data) : id(id), data(data), exclusive(false), dirty(false), state(0) {
+    BufferFrame(uint64_t id, void* data) : id(id), data(data), exclusive(false), dirty(false), fixed(false) {
         pthread_rwlock_init(&frame_rwlock, NULL);
     }
 
@@ -36,23 +36,26 @@ public:
     bool isExclusive();
     void setExclusive(bool isExclusive);
 
+    bool isFixed();
+    void setFixed(bool isFixed);
+
     void clearControlDataAndSetID(uint64_t id);
 
-    void setState(uint16_t state);
-
-    void lockRead();
-    void lockWrite();
+    void lockFrame(bool isExclusive);
     void unlockFrame();
 
 private:
     void* data; //Data of PAGESIZE bytes
     uint64_t id;
 
-    uint16_t state; //State for replacement Strategy
-    bool dirty, exclusive;
+    bool dirty, exclusive, fixed;
 
     //Latch
     pthread_rwlock_t frame_rwlock;
+
+
+    void lockRead();
+    void lockWrite();
 };
 
 #endif //PROJECT_BUFFERFRAME_H

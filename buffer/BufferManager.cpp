@@ -16,7 +16,8 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
 
         //lock until the other competitor unfixes its frame and we can use it
         //TODO deadlocks?
-        setExclusiveLock(bufferFrame, isExclusive);
+        bufferFrame->lockFrame(isExclusive);
+        bufferFrame->setFixed(true);
 
         replacementStrategy.onUse(bufferFrame); //maybe call before lock..
 
@@ -31,7 +32,8 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
 
                 //lock until the other competitor unfixes its frame and we can use it
                 //TODO deadlocks?
-                setExclusiveLock(bufferFrame, isExclusive);
+                bufferFrame->lockFrame(isExclusive);
+                bufferFrame->setFixed(true);
 
                 collection.insert(id, bufferFrame);
                 ++pageCount;
@@ -46,12 +48,10 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
 
                 //In case there is nothing that can be removed -> throw error that insertion is currently not possible
                 //TODO: instead of error: trylock until something can be removed, and we can use the space
-                try {
-                    bufferFrame = replacementStrategy.popRemovable();
-                } catch (int exc) {
-                    if(exc == NO_REMOVABLE_FRAME_ERROR){
-                        throw NO_REMOVABLE_FRAME_ERROR;
-                    }
+                bufferFrame = replacementStrategy.popRemovable();
+                if(bufferFrame == nullptr) {
+                    printf("Cannot remove a frame... TODO: Need implementation for lock.");
+                    exit(1);
                 }
 
                 bufferFrame->unlockFrame();
@@ -69,7 +69,8 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
                 bufferFrame = recreateBufferFrame(id, bufferFrame); //reuse bufferFrameWrappers allocated memory
                 //lock until the other competitor unfixes its frame and we can use it
                 //TODO deadlocks?
-                setExclusiveLock(bufferFrame, isExclusive);
+                bufferFrame->lockFrame(isExclusive);
+                bufferFrame->setFixed(true);
 
                 collection.insert(id, bufferFrame);
 
@@ -90,20 +91,9 @@ void BufferManager::unfixPage(BufferFrame* bufferFrame, bool isDirty) {
         // we don't want to magically clean our pages
     }
     bufferFrame->setExclusive(false);
+    bufferFrame->setFixed(false);
     bufferFrame->unlockFrame();
     replacementStrategy.onUse(bufferFrame);
-}
-
-
-void BufferManager::setExclusiveLock(BufferFrame *bufferFrame, bool isExclusive) {
-    if(isExclusive) {
-        bufferFrame->lockWrite();
-    }
-    else {
-        bufferFrame->lockRead();
-    }
-    bufferFrame->setExclusive(isExclusive);
-
 }
 
 BufferFrame* BufferManager::createBufferFrame(uint64_t id) {
