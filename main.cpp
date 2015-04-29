@@ -9,12 +9,14 @@ void printArguments(int argc, const char* argv[]);
 int main(int argc, const char* argv[])
 {
     BufferManager bufferManager(3);
-    BufferFrame bufferFrame1 = bufferManager.fixPage(1, false);
-    BufferFrame bufferFrame2 = bufferManager.fixPage(2, false);
-    BufferFrame bufferFrame3 = bufferManager.fixPage(3, false);
+    BufferFrame* bufferFrame1 = bufferManager.fixPage(1, false);
     bufferManager.unfixPage(bufferFrame1, true);
-    BufferFrame bufferFrame4 = bufferManager.fixPage(4, false);
-    BufferFrame bufferFrame5 = bufferManager.fixPage(5, false);
+    bufferFrame1 = bufferManager.fixPage(1, false);
+    BufferFrame* bufferFrame2 = bufferManager.fixPage(2, false);
+    BufferFrame* bufferFrame3 = bufferManager.fixPage(3, false);
+    bufferManager.unfixPage(bufferFrame1, true);
+    bufferManager.fixPage(4, false);
+    bufferManager.fixPage(5, false);
 
     return 0;
 }

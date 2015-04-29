@@ -6,7 +6,7 @@
 #define PROJECT_LOCKEDCOLLECTION_H
 
 #include <stdint.h>
-#include <mutex>
+#include <pthread.h>
 #include <vector>
 #include <unordered_map>
 #include <iostream>
@@ -20,12 +20,22 @@
 template <class KEY_T, class ITEM_T>
 class LockedCollection {
 public:
+
+    LockedCollection(){
+        pthread_mutex_init(&content_mutex, NULL);
+    }
+
+    ~LockedCollection(){
+        pthread_mutex_destroy(&content_mutex);
+    }
+
     /* Inserts an item with a key value.
      * Locks the collection during insertion process.
      */
     void insert(KEY_T key, ITEM_T item){
-        std::lock_guard<std::mutex> lock(content_mutex);
+        pthread_mutex_lock(&content_mutex);
         content.insert(std::pair<KEY_T, ITEM_T>(key, item));
+        pthread_mutex_unlock(&content_mutex);
     }
 
     /*
@@ -42,16 +52,13 @@ public:
      * }
      */
     ITEM_T find(KEY_T key){
-        std::lock_guard<std::mutex> lock(content_mutex);
+        pthread_mutex_lock(&content_mutex);
         auto got = content.find(key);
+        pthread_mutex_unlock(&content_mutex);
         if (got == content.end()) {
             throw ITEM_NOT_FOUND_ERROR;
         }
         else return got->second;
-    }
-
-    uint64_t size(){
-        return content.size();
     }
 
     /*
@@ -67,37 +74,39 @@ public:
     *      if(ex == NOT_FOUND) ...;
     * }
     */
-    void remove(KEY_T key){
-        std::lock_guard<std::mutex> lock(content_mutex);
+    bool remove(KEY_T key){
+        pthread_mutex_lock(&content_mutex);
         unsigned int got = content.erase(key);
-        if (got == 0) {
-            throw ITEM_NOT_FOUND_ERROR;
-        }
+        pthread_mutex_unlock(&content_mutex);
+        return (got == 0);
     }
 
     /*
      * Clears collection
      */
     void clear(){
-        std::lock_guard<std::mutex> lock(content_mutex);
+        pthread_mutex_lock(&content_mutex);
         content.clear();
+        pthread_mutex_unlock(&content_mutex);
     }
 
     /*
      * returns all items in a vector
+     * this method locks the table for a long time, only use it carefully
      */
     std::vector<ITEM_T> getAll(){
-        std::lock_guard<std::mutex> lock(content_mutex);
         std::vector<ITEM_T> items;
+        pthread_mutex_lock(&content_mutex);
         for(auto kv : content){
             items.push_back(kv.second);
         }
+        pthread_mutex_unlock(&content_mutex);
         return items;
     }
 
 private:
     std::unordered_map<KEY_T , ITEM_T> content;
-    std::mutex content_mutex;
+    pthread_mutex_t content_mutex;
 
 };
 
