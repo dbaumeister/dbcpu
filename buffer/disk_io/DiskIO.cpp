@@ -59,7 +59,7 @@ int DiskIO::getFileDescriptor(BufferFrame *bufferFrame) {
         fd = open(filePath.c_str(), O_RDWR | O_CREAT);
 
         if(fd < 0) {
-            printf("ERROR: Could not open data file \"%s\" for reading.", filePath.c_str());
+            printf("ERROR: Could not open data file \"%s\".", filePath.c_str());
             exit(1);
         } else {
             filedescriptors.insert(std::pair<uint64_t, int>(bufferFrame->getID(), fd));
