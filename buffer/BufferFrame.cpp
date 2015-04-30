@@ -67,10 +67,14 @@ void BufferFrame::lockFrame(bool isExclusive) {
     setExclusive(isExclusive);
 }
 
-bool BufferFrame::isFixed() {
-    return fixed;
+void BufferFrame::fix() {
+    ++user_count;
 }
 
-void BufferFrame::setFixed(bool isFixed) {
-    fixed = isFixed;
+void BufferFrame::unfix() {
+    --user_count;
+}
+
+unsigned int BufferFrame::getUserCount() {
+    return user_count;
 }

@@ -32,7 +32,7 @@ BufferFrame *DoubleLinkedList::pop_unfixed() {
 
     Element* e = first;
 
-    while(e != nullptr && e->bufferFrame->isFixed()){
+    while(e != nullptr && e->bufferFrame->getUserCount() > 0){
         e = e->next;
     }
 
@@ -101,10 +101,11 @@ BufferFrame *DoubleLinkedList::pop_clean() {
 
     Element* e = first;
 
-    while(e != nullptr && (e->bufferFrame->isDirty() || e->bufferFrame->isFixed())){
+    //skip as long as e is not null and contains a dirty BufferFrame or one that has users
+    while(e != nullptr && (e->bufferFrame->isDirty() || e->bufferFrame->getUserCount() > 0)){
         e = e->next;
     }
-
+    //-> e is either nullptr or contains a clean unused BufferFrame
     if(e == nullptr) return nullptr;
 
     BufferFrame* bufferFrame = e->bufferFrame;

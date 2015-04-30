@@ -12,12 +12,12 @@ int main(int argc, const char* argv[])
     BufferFrame* bufferFrame1 = bufferManager.fixPage(1, false);
     bufferManager.unfixPage(bufferFrame1, true);
     bufferFrame1 = bufferManager.fixPage(1, false);
-    BufferFrame* bufferFrame2 = bufferManager.fixPage(2, false);
-    BufferFrame* bufferFrame3 = bufferManager.fixPage(3, false);
+    BufferFrame* bufferFrame2 = bufferManager.fixPage(1, false);
+    BufferFrame* bufferFrame3 = bufferManager.fixPage(1, false);
     bufferManager.unfixPage(bufferFrame3, true);
     bufferManager.unfixPage(bufferFrame2, true);
-    bufferManager.unfixPage(bufferFrame1, true);
     bufferManager.fixPage(4, false);
+    bufferManager.unfixPage(bufferFrame1, true);
     bufferManager.fixPage(5, false);
 
     return 0;

@@ -17,7 +17,7 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
         //lock until the other competitor unfixes its frame and we can use it
         //TODO deadlocks?
         bufferFrame->lockFrame(isExclusive);
-        bufferFrame->setFixed(true);
+        bufferFrame->fix();
 
         replacementStrategy.onUse(bufferFrame); //maybe call before lock..
 
@@ -33,7 +33,7 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
                 //lock until the other competitor unfixes its frame and we can use it
                 //TODO deadlocks?
                 bufferFrame->lockFrame(isExclusive);
-                bufferFrame->setFixed(true);
+                bufferFrame->fix();
 
                 collection.insert(id, bufferFrame);
                 ++pageCount;
@@ -54,8 +54,6 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
                     exit(1);
                 }
 
-                bufferFrame->unlockFrame();
-
                 //Remove the removable also from collection
                 collection.remove(bufferFrame->getID());
 
@@ -70,7 +68,7 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
                 //lock until the other competitor unfixes its frame and we can use it
                 //TODO deadlocks?
                 bufferFrame->lockFrame(isExclusive);
-                bufferFrame->setFixed(true);
+                bufferFrame->fix();
 
                 collection.insert(id, bufferFrame);
 
@@ -91,9 +89,8 @@ void BufferManager::unfixPage(BufferFrame* bufferFrame, bool isDirty) {
         // we don't want to magically clean our pages
     }
     bufferFrame->setExclusive(false);
-    bufferFrame->setFixed(false);
+    bufferFrame->unfix();
     bufferFrame->unlockFrame();
-    replacementStrategy.onUse(bufferFrame);
 }
 
 BufferFrame* BufferManager::createBufferFrame(uint64_t id) {

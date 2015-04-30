@@ -13,7 +13,7 @@
 #include "../exceptions/exceptions.h"
 #include "disk_io/DiskIO.h"
 
-
+//TODO: rewrite locks (unlock in fixPage etc)
 class BufferManager{
 public:
     BufferManager(uint64_t maxPageCount) : pageCountMax(maxPageCount), pageCount(0) {}
