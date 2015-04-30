@@ -7,7 +7,6 @@
 
 #include "BufferManager.h"
 
-//TODO: deadlocks?
 BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
 
     try{
@@ -48,7 +47,7 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
                 //TODO: instead of error: wait until something can be removed, and we can use the space
                 bufferFrame = replacementStrategy.popRemovable();
                 if(bufferFrame == nullptr) {
-                    printf("Cannot remove a frame... TODO: Need implementation for lock.");
+                    printf("ERROR: Cannot remove a frame.");
                     exit(1);
                 }
 
