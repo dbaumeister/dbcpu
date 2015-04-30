@@ -17,7 +17,7 @@ public:
     void onUse(BufferFrame* bufferFrameWrapper); //the element was used -> update
     void onCreate(BufferFrame* bufferFrameWrapper); //the element was created -> insert it
 
-    BufferFrame* popRemovable(); //pops removable candidate - or nothing if we cannot remove anything (not the case for fifo)
+    BufferFrame* popRemovable(); //pops removable candidate - or nullptr if we cannot remove anything (not the case for fifo)
 
 private:
     DoubleLinkedList lru;

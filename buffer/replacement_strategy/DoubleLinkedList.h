@@ -36,8 +36,6 @@ public:
     bool contains(BufferFrame* bufferFrame);
 
 private:
-    bool isEmpty();
-
     std::unordered_map<BufferFrame*, Element*> table; //Search structure to find the element quickly
 
     Element* first; //contains an actual Element or nullptr if list is empty

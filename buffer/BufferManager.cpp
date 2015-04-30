@@ -7,7 +7,7 @@
 
 #include "BufferManager.h"
 
-
+//TODO: deadlocks?
 BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
 
     try{
@@ -15,7 +15,6 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
         BufferFrame* bufferFrame =  collection.find(id);
 
         //lock until the other competitor unfixes its frame and we can use it
-        //TODO deadlocks?
         bufferFrame->lockFrame(isExclusive);
         bufferFrame->fix();
 
@@ -31,7 +30,6 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
                 BufferFrame* bufferFrame = createBufferFrame(id);
 
                 //lock until the other competitor unfixes its frame and we can use it
-                //TODO deadlocks?
                 bufferFrame->lockFrame(isExclusive);
                 bufferFrame->fix();
 
@@ -47,7 +45,7 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
                 BufferFrame* bufferFrame;
 
                 //In case there is nothing that can be removed -> throw error that insertion is currently not possible
-                //TODO: instead of error: trylock until something can be removed, and we can use the space
+                //TODO: instead of error: wait until something can be removed, and we can use the space
                 bufferFrame = replacementStrategy.popRemovable();
                 if(bufferFrame == nullptr) {
                     printf("Cannot remove a frame... TODO: Need implementation for lock.");
@@ -57,16 +55,15 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
                 //Remove the removable also from collection
                 collection.remove(bufferFrame->getID());
 
-                //write the removable BufferFrame to disk DONT free its RAM, we will need it
-                // - important: only write to disk, when strategy makes space or BufferManagers Destructor is called
+                //only  write back to disk, if any changes were done to the BufferFrame
                 if(bufferFrame->isDirty()){
-                    //only  write back to disk, if any changes were done to the BufferFrame
+                    //write the removable BufferFrame to disk
                     io.writeToDisk(bufferFrame);
                 }
 
-                bufferFrame = recreateBufferFrame(id, bufferFrame); //reuse bufferFrameWrappers allocated memory
+                bufferFrame = recreateBufferFrame(id, bufferFrame); //reuse bufferFrames allocated memory
+
                 //lock until the other competitor unfixes its frame and we can use it
-                //TODO deadlocks?
                 bufferFrame->lockFrame(isExclusive);
                 bufferFrame->fix();
 
@@ -88,7 +85,6 @@ void BufferManager::unfixPage(BufferFrame* bufferFrame, bool isDirty) {
         bufferFrame->setDirty(true); //only change dirty state if the caller set it to dirty
         // we don't want to magically clean our pages
     }
-    bufferFrame->setExclusive(false);
     bufferFrame->unfix();
     bufferFrame->unlockFrame();
 }

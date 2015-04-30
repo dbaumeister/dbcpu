@@ -22,13 +22,6 @@ uint64_t BufferFrame::getPageID() {
     return rawID & (((uint64_t) 1 << 48) - 1);
 }
 
-bool BufferFrame::isExclusive() {
-    return exclusive;
-}
-
-void BufferFrame::setExclusive(bool isExclusive) {
-    exclusive = isExclusive;
-}
 
 bool BufferFrame::isDirty() {
     return dirty;
@@ -41,7 +34,6 @@ void BufferFrame::setDirty(bool isDirty) {
 
 void BufferFrame::clearControlDataAndSetID(uint64_t id) {
     setDirty(false);
-    setExclusive(false);
     this->id = id;
 }
 
@@ -64,7 +56,6 @@ void BufferFrame::lockFrame(bool isExclusive) {
     else {
         lockRead();
     }
-    setExclusive(isExclusive);
 }
 
 void BufferFrame::fix() {

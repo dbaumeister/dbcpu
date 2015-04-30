@@ -17,7 +17,6 @@ void DiskIO::writeToDisk(BufferFrame* bufferFrame) {
 
     if(pwrite(fd, bufferFrame->getData(), PAGESIZE, bufferFrame->getPageID() * PAGESIZE) < 0) {
         printf("ERROR: Could not write in data file.");
-        close(fd); //it does not matter, if we could close the file, as we are throwing an error anyway. at least we try to close it
         exit(1);
     }
 }
@@ -31,7 +30,6 @@ void DiskIO::readFromDisk(BufferFrame* bufferFrame) {
 
     if(pread(fd, bufferFrame->getData(), PAGESIZE, bufferFrame->getPageID() * PAGESIZE) < 0) {
         printf("ERROR: Could not read from data file.");
-        close(fd); //it does not matter if we could close the file, as we are throwing an error anyway. at least we try to close it
         exit(1);
     }
 }
@@ -45,7 +43,7 @@ void DiskIO::closeFiles() {
 /**
  * returns -1 if it does not have an open file
  */
-int DiskIO::hasOpenFile(uint64_t id) {
+int DiskIO::getOpenFileDescriptor(uint64_t id) {
     auto got = filedescriptors.find(id);
     if (got == filedescriptors.end()) {
         return -1;
@@ -55,7 +53,7 @@ int DiskIO::hasOpenFile(uint64_t id) {
 
 
 int DiskIO::getFileDescriptor(BufferFrame *bufferFrame) {
-    int fd = hasOpenFile(bufferFrame->getID());
+    int fd = getOpenFileDescriptor(bufferFrame->getID());
     if(fd == -1) {
         std::string filePath = DATA_PATH_PREFIX + std::to_string(bufferFrame->getSegmentID());
         fd = open(filePath.c_str(), O_RDWR | O_CREAT);

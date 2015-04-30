@@ -14,14 +14,14 @@
 
 class DiskIO{
 public:
-    void writeToDisk(BufferFrame* frame); //low level function
-    void readFromDisk(BufferFrame* frame); //low level function, assumes that data is already allocated
+    void writeToDisk(BufferFrame* frame);
+    void readFromDisk(BufferFrame* frame); //assumes that data is already allocated
 
     void closeFiles();
 
 private:
     std::unordered_map<uint64_t, int> filedescriptors;
-    int hasOpenFile(uint64_t id);
+    int getOpenFileDescriptor(uint64_t id);
     int getFileDescriptor(BufferFrame* bufferFrame);
 };
 

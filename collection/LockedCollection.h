@@ -41,15 +41,7 @@ public:
     /*
      * Locks the collection during search process.
      * Returns the corresponding item, if key is found.
-     * Throws and int exception NOT_FOUND otherwise
-     *
-     * use:
-     * try {
-     * ...
-     * }
-     * catch (int ex) {
-     *      if(ex == NOT_FOUND) ...;
-     * }
+     * Throws and int exception ITEM_NOT_FOUND_ERROR otherwise
      */
     ITEM_T find(KEY_T key){
         pthread_mutex_lock(&content_mutex);
@@ -62,18 +54,9 @@ public:
     }
 
     /*
-    * Locks the collection during remove process.
-    * Removes the corresponding pair, if the collection contains the key.
-    * Throws and int exception NOT_FOUND otherwise
-    *
-    * use:
-    * try {
-    * ...
-    * }
-    * catch (int ex) {
-    *      if(ex == NOT_FOUND) ...;
-    * }
-    */
+     * Locks the collection during remove process.
+     * Removes the corresponding pair, if the collection contains the key/
+     */
     bool remove(KEY_T key){
         pthread_mutex_lock(&content_mutex);
         unsigned int got = content.erase(key);
