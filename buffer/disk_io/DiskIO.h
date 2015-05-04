@@ -10,7 +10,7 @@
 #include "../BufferFrame.h"
 
 
-#define DATA_PATH_PREFIX "data"
+#define DATA_PATH_PREFIX ""
 
 class DiskIO{
 public:
