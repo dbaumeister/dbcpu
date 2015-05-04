@@ -9,71 +9,81 @@
 
 BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
 
-    try{
-        //Try to find the bufferFrame in our collection
-        BufferFrame* bufferFrame =  collection.find(id);
+    BufferFrame* bufferFrame;
 
-        //lock until the other competitor unfixes its frame and we can use it
+
+    pthread_mutex_lock(&global_lock);
+    auto it = frames.find(id);
+
+    if(it != frames.end()){
+        //success: we found it
+        bufferFrame = it->second;
+        pthread_mutex_unlock(&global_lock);
+
         bufferFrame->lockFrame(isExclusive);
         bufferFrame->fix();
 
-        replacementStrategy.onUse(bufferFrame); //maybe call before lock..
+
+        pthread_mutex_lock(&global_lock);
+        replacementStrategy.onUse(bufferFrame);
+        pthread_mutex_unlock(&global_lock);
 
         return bufferFrame;
-
-    } catch (int exception) {
-        if(exception == ITEM_NOT_FOUND_ERROR) {
-            //we did not find the BufferFrame
-            if(pageCount < pageCountMax){
-                //if we have not reached our maxPageCount -> create a BufferFrame
-                BufferFrame* bufferFrame = createBufferFrame(id);
-
-                //lock until the other competitor unfixes its frame and we can use it
-                bufferFrame->lockFrame(isExclusive);
-                bufferFrame->fix();
-
-                collection.insert(id, bufferFrame);
-                ++pageCount;
-                // update replacement strategy
-                replacementStrategy.onCreate(bufferFrame);
-                return bufferFrame;
-            }
-            else  {
-                //if we have reached our maxPageCount
-                //ask replacement strategy to make space (e.g. which BufferFrameWrapper can be removed)
-                BufferFrame* bufferFrame;
-
-                //In case there is nothing that can be removed -> throw error that insertion is currently not possible
-                bufferFrame = replacementStrategy.popRemovable();
-                if(bufferFrame == nullptr) {
-                    fprintf(stderr, "Cannot remove a frame.\n");
-                    exit(1);
-                }
-
-                //Remove the removable also from collection
-                collection.remove(bufferFrame->getID());
-
-                //only  write back to disk, if any changes were done to the BufferFrame
-                if(bufferFrame->isDirty()){
-                    //write the removable BufferFrame to disk
-                    io.writeToDisk(bufferFrame);
-                }
-
-                bufferFrame = recreateBufferFrame(id, bufferFrame); //reuse bufferFrames allocated memory
-
-                //lock until the other competitor unfixes its frame and we can use it
-                bufferFrame->lockFrame(isExclusive);
-                bufferFrame->fix();
-
-                collection.insert(id, bufferFrame);
-
-                //update replacement strategy
-                replacementStrategy.onCreate(bufferFrame);
-
-                return bufferFrame;
-            }
-        } else throw exception; //if there was another exception
     }
+
+    pthread_mutex_unlock(&global_lock);
+
+    //If we did not find it:
+    if(pageCount < pageCountMax){
+        //if we have not reached our maxPageCount -> create a BufferFrame
+        bufferFrame = createBufferFrame(id);
+
+        bufferFrame->lockFrame(isExclusive); //lock until the other competitor unfixes its frame and we can use it
+        bufferFrame->fix();
+
+
+        pthread_mutex_lock(&global_lock);
+        frames.insert(std::pair<uint64_t, BufferFrame*>(id, bufferFrame));
+        ++pageCount;
+
+        replacementStrategy.onCreate(bufferFrame); // update replacement strategy
+        pthread_mutex_unlock(&global_lock);
+
+        return bufferFrame;
+    }
+
+    //If we did not find it and we have reached our maxPageCount:
+    //ask replacement strategy to make space (e.g. which BufferFrameWrapper can be removed)
+
+    //In case there is nothing that can be removed -> throw error that insertion is currently not possible
+    pthread_mutex_lock(&global_lock);
+    bufferFrame = replacementStrategy.popRemovable();
+    if(bufferFrame == nullptr) {
+        fprintf(stderr, "Cannot remove a frame.\n");
+        exit(1);
+    }
+
+    frames.erase(bufferFrame->getID()); //Remove the removable bufferFrame also from collection
+    pthread_mutex_unlock(&global_lock);
+
+
+    if(bufferFrame->isDirty()) { //only  write back to disk, if any changes were done to the BufferFrame
+        io.writeToDisk(bufferFrame); //write the removable BufferFrame to disk
+    }
+
+    bufferFrame = recreateBufferFrame(id, bufferFrame); //reuse bufferFrames allocated memory
+
+    bufferFrame->lockFrame(isExclusive); //lock until the other competitor unfixes its frame and we can use it
+    bufferFrame->fix();
+
+
+    pthread_mutex_lock(&global_lock);
+    frames.insert(std::pair<uint64_t, BufferFrame*>(id, bufferFrame));
+    replacementStrategy.onCreate(bufferFrame); //update replacement strategy
+    pthread_mutex_unlock(&global_lock);
+
+    return bufferFrame;
+
 }
 
 
@@ -102,13 +112,16 @@ BufferFrame* BufferManager::recreateBufferFrame(uint64_t id, BufferFrame* buffer
 }
 
 BufferManager::~BufferManager() {
-    std::vector<BufferFrame*> bufferFrames = collection.getAll();
-    for(BufferFrame* bufferFrame : bufferFrames) {
+    pthread_mutex_lock(&global_lock);
+    for(auto it : frames) {
+        BufferFrame* bufferFrame = it.second;
         if(bufferFrame->isDirty()) {
             io.writeToDisk(bufferFrame); //write all dirty frames to disk
         }
         delete(bufferFrame);
     }
     io.closeFiles();
-    collection.clear();
+    frames.clear();
+    pthread_mutex_unlock(&global_lock);
+    pthread_mutex_destroy(&global_lock);
 }
