@@ -44,8 +44,8 @@ void DiskIO::closeFiles() {
 /**
  * returns -1 if it does not have an open file
  */
-int DiskIO::getOpenFileDescriptor(uint64_t id) {
-    auto got = filedescriptors.find(id);
+int DiskIO::getOpenFileDescriptor(uint16_t segID) {
+    auto got = filedescriptors.find(segID);
     if (got == filedescriptors.end()) {
         return -1;
     }
@@ -54,7 +54,7 @@ int DiskIO::getOpenFileDescriptor(uint64_t id) {
 
 
 int DiskIO::getFileDescriptor(BufferFrame *bufferFrame) {
-    int fd = getOpenFileDescriptor(bufferFrame->getID());
+    int fd = getOpenFileDescriptor(bufferFrame->getSegmentID());
     if(fd == -1) {
         std::string filePath = DATA_PATH_PREFIX + std::to_string(bufferFrame->getSegmentID());
         fd = open(filePath.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -63,7 +63,7 @@ int DiskIO::getFileDescriptor(BufferFrame *bufferFrame) {
             fprintf(stderr, "Could not open data file \"%s\": %s.\n", filePath.c_str(), strerror(errno));
             exit(1);
         } else {
-            filedescriptors.insert(std::pair<uint64_t, int>(bufferFrame->getID(), fd));
+            filedescriptors.insert(std::pair<uint16_t, int>(bufferFrame->getSegmentID(), fd));
         }
     }
     return fd;
