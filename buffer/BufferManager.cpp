@@ -18,37 +18,33 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
     if(it != frames.end()){
         //success: we found it
         bufferFrame = it->second;
-        pthread_mutex_unlock(&global_lock);
 
         bufferFrame->lockFrame(isExclusive);
         bufferFrame->fix();
 
 
-        pthread_mutex_lock(&global_lock);
         replacementStrategy.onUse(bufferFrame);
-        pthread_mutex_unlock(&global_lock);
 
+        pthread_mutex_unlock(&global_lock);
         return bufferFrame;
     }
 
-    pthread_mutex_unlock(&global_lock);
 
     //If we did not find it:
     if(pageCount < pageCountMax){
         //if we have not reached our maxPageCount -> create a BufferFrame
-        bufferFrame = createBufferFrame(id);
+        bufferFrame = createBufferFrame(id); //TODO: critical, id might not be safe!
 
         bufferFrame->lockFrame(isExclusive); //lock until the other competitor unfixes its frame and we can use it
         bufferFrame->fix();
 
 
-        pthread_mutex_lock(&global_lock);
         frames.insert(std::pair<uint64_t, BufferFrame*>(id, bufferFrame));
         ++pageCount;
 
         replacementStrategy.onCreate(bufferFrame); // update replacement strategy
-        pthread_mutex_unlock(&global_lock);
 
+        pthread_mutex_unlock(&global_lock);
         return bufferFrame;
     }
 
@@ -56,7 +52,6 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
     //ask replacement strategy to make space (e.g. which BufferFrameWrapper can be removed)
 
     //In case there is nothing that can be removed -> throw error that insertion is currently not possible
-    pthread_mutex_lock(&global_lock);
     bufferFrame = replacementStrategy.popRemovable();
     if(bufferFrame == nullptr) {
         fprintf(stderr, "Cannot remove a frame.\n");
@@ -64,7 +59,6 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
     }
 
     frames.erase(bufferFrame->getID()); //Remove the removable bufferFrame also from collection
-    pthread_mutex_unlock(&global_lock);
 
 
     if(bufferFrame->isDirty()) { //only  write back to disk, if any changes were done to the BufferFrame
@@ -73,15 +67,17 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
 
     bufferFrame = recreateBufferFrame(id, bufferFrame); //reuse bufferFrames allocated memory
 
+
+
     bufferFrame->lockFrame(isExclusive); //lock until the other competitor unfixes its frame and we can use it
     bufferFrame->fix();
 
 
-    pthread_mutex_lock(&global_lock);
     frames.insert(std::pair<uint64_t, BufferFrame*>(id, bufferFrame));
     replacementStrategy.onCreate(bufferFrame); //update replacement strategy
-    pthread_mutex_unlock(&global_lock);
 
+
+    pthread_mutex_unlock(&global_lock);
     return bufferFrame;
 
 }
