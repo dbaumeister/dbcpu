@@ -19,7 +19,9 @@ public:
     }
 
     ~BufferFrame(){
-        unlockFrame();
+        for(int i = 0; i < user_count; ++i){
+            unlockFrame();
+        }
         pthread_rwlock_destroy(&frame_rwlock);
         free(data);
     }

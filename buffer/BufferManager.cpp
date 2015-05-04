@@ -44,10 +44,9 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
                 BufferFrame* bufferFrame;
 
                 //In case there is nothing that can be removed -> throw error that insertion is currently not possible
-                //TODO: instead of error: wait until something can be removed, and we can use the space
                 bufferFrame = replacementStrategy.popRemovable();
                 if(bufferFrame == nullptr) {
-                    printf("ERROR: Cannot remove a frame.");
+                    fprintf(stderr, "Cannot remove a frame.\n");
                     exit(1);
                 }
 
