@@ -11,7 +11,6 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
 
     BufferFrame* bufferFrame;
 
-
     pthread_mutex_lock(&global_lock);
     auto it = frames.find(id);
 
@@ -22,13 +21,11 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
         bufferFrame->lockFrame(isExclusive);
         bufferFrame->fix();
 
-
         replacementStrategy.onUse(bufferFrame);
 
         pthread_mutex_unlock(&global_lock);
         return bufferFrame;
     }
-
 
     //If we did not find it:
     if(pageCount < pageCountMax){
@@ -37,7 +34,6 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
 
         bufferFrame->lockFrame(isExclusive); //lock until the other competitor unfixes its frame and we can use it
         bufferFrame->fix();
-
 
         frames.insert(std::pair<uint64_t, BufferFrame*>(id, bufferFrame));
         ++pageCount;
@@ -60,26 +56,20 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
 
     frames.erase(bufferFrame->getID()); //Remove the removable bufferFrame also from collection
 
-
     if(bufferFrame->isDirty()) { //only  write back to disk, if any changes were done to the BufferFrame
         io.writeToDisk(bufferFrame); //write the removable BufferFrame to disk
     }
 
     bufferFrame = recreateBufferFrame(id, bufferFrame); //reuse bufferFrames allocated memory
 
-
-
     bufferFrame->lockFrame(isExclusive); //lock until the other competitor unfixes its frame and we can use it
     bufferFrame->fix();
-
 
     frames.insert(std::pair<uint64_t, BufferFrame*>(id, bufferFrame));
     replacementStrategy.onCreate(bufferFrame); //update replacement strategy
 
-
     pthread_mutex_unlock(&global_lock);
     return bufferFrame;
-
 }
 
 
