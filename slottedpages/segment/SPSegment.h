@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include "../../buffer/BufferManager.h"
 #include "../../buffer/BufferFrame.h"
+#include "../Record.h"
 
 const uint16_t REDIRECT = 1;
 
@@ -39,12 +40,12 @@ struct SlottedPage {
 
 class SPSegment {
 public:
-    /*
+
     TID insert(Record& record);
     bool remove(TID tid);
     bool update(TID tid, Record& record);
     Record& lookup(TID tid);
-*/
+
 private:
     std::unordered_map<uint64_t, SlottedPage&> slottedPages; //uint64_t => pageID
 };

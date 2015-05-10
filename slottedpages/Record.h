@@ -1,5 +1,9 @@
-#ifndef H_Record_HPP
-#define H_Record_HPP
+/*
+ * Assignment 3 - provided code
+ */
+
+#ifndef PROJECT_RECORD_H
+#define PROJECT_RECORD_H
 
 #include <cstring>
 #include <cstdlib>
@@ -49,4 +53,4 @@ Record::~Record() {
    free(data);
 }
 
-#endif
+#endif //PROJECT_RECORD_H

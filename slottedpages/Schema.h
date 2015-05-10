@@ -1,9 +1,14 @@
-#ifndef H_Schema_hpp
-#define H_Schema_hpp
+/*
+ * Assignment 3 - provided code
+ */
+
+
+#ifndef PROJECT_SCHEMA_H
+#define PROJECT_SCHEMA_H
 
 #include <vector>
 #include <string>
-#include "Types.hpp"
+#include "Types.h"
 
 struct Schema {
    struct Relation {
@@ -22,4 +27,4 @@ struct Schema {
    std::vector<Schema::Relation> relations;
    std::string toString() const;
 };
-#endif
+#endif //PROJECT_SCHEMA_H

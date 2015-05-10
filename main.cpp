@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 #include <stdint.h>
 
 #include "buffer/BufferManager.h"

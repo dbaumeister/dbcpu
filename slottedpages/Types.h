@@ -1,5 +1,10 @@
-#ifndef H_Types_hpp
-#define H_Types_hpp
+/*
+ * Assignment 3 - provided code
+ */
+
+
+#ifndef PROJECT_TYPES_H
+#define PROJECT_TYPES_H
 
 #include <string>
 #include <cmath>
@@ -52,4 +57,4 @@ Numeric<len1,len2>::Numeric(uint64_t pre, uint64_t decimal) {
    data = decimal + std::pow(10, len2)*pre;
 }
 */
-#endif
+#endif //PROJECT_TYPES_H

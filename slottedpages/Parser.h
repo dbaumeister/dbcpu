@@ -1,12 +1,17 @@
-#ifndef H_Parser_hpp
-#define H_Parser_hpp
+/*
+ * Assignment 3 - provided code
+ */
+
+
+#ifndef PROJECT_PARSER_H
+#define PROJECT_PARSER_H
 
 #include <exception>
 #include <string>
 #include <memory>
 #include <fstream>
 #include <sstream>
-#include "Schema.hpp"
+#include "Schema.h"
 
 class ParserError : std::exception {
    std::string msg;
@@ -32,4 +37,4 @@ struct Parser {
    void nextToken(unsigned line, const std::string& token, Schema& s);
 };
 
-#endif
+#endif //PROJECT_PARSER_H
