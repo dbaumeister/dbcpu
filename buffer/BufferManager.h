@@ -9,8 +9,6 @@
 
 #include "BufferFrame.h"
 #include "replacement_strategy/ReplacementStrategy.h"
-#include "../collection/LockedCollection.h"
-#include "../exceptions/exceptions.h"
 #include "disk_io/DiskIO.h"
 
 class BufferManager{

@@ -14,7 +14,7 @@
 
 class BufferFrame{
 public:
-    BufferFrame(uint64_t id, void* data) : id(id), data(data), dirty(false), user_count(0) {
+    BufferFrame(uint64_t id, void* data) : id(id), data(data), dirty(false), user_count(0), inFifo(true) {
         pthread_rwlock_init(&frame_rwlock, NULL);
     }
 
@@ -35,6 +35,9 @@ public:
     bool isDirty();
     void setDirty(bool isDirty);
 
+    bool isInFifo();
+    void setInFifo(bool fifo);
+
     void fix();
     void unfix();
     unsigned int getUserCount();
@@ -44,6 +47,9 @@ public:
     void lockFrame(bool isExclusive);
     void unlockFrame();
 
+
+    BufferFrame* prev;
+    BufferFrame* next;
 private:
     void* data; //Data of PAGESIZE bytes
     uint64_t id;
@@ -54,9 +60,10 @@ private:
     //Latch
     pthread_rwlock_t frame_rwlock;
 
-
     void lockRead();
     void lockWrite();
+
+    bool inFifo;
 };
 
 #endif //PROJECT_BUFFERFRAME_H

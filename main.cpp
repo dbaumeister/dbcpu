@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "buffer/BufferFrame.h"
 #include "buffer/BufferManager.h"
+#include "slottedpages/segment/SPSegment.h"
 
 void printArguments(int argc, const char* argv[]);
 
 int main(int argc, const char* argv[])
 {
+    std::cout << sizeof(Slot) << std::endl;
     return 0;
 }
 

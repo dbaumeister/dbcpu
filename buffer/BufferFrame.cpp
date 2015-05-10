@@ -69,3 +69,11 @@ void BufferFrame::unfix() {
 unsigned int BufferFrame::getUserCount() {
     return user_count;
 }
+
+void BufferFrame::setInFifo(bool fifo) {
+    inFifo = fifo;
+}
+
+bool BufferFrame::isInFifo() {
+    return inFifo;
+}
