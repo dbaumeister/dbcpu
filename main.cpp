@@ -20,6 +20,9 @@ int main(int argc, const char* argv[])
 
     testSlottedPageInsertWithRandomInserts(sp);
     testSlottedPageRemove(sp);
+
+    std::cout << "Free space after defrag: ";
+    std::cout << sp.defrag() << " bytes." << std::endl;
     return 0;
 }
 
@@ -28,7 +31,7 @@ void testSlottedPageRemove(SlottedPage& sp){
 
     std::cout << "Fragmented space: " << sp.header.fragmentedSpace << " bytes." << std::endl;
     for(uint16_t i = 0; i < sp.header.slotCount; ++i){
-        sp.remove(i);
+        sp.removeData(i);
         std::cout << "Fragmented space: " << sp.header.fragmentedSpace << " bytes." << std::endl;
     }
 }
@@ -39,7 +42,7 @@ void testSlottedPageInsertWithRandomInserts(SlottedPage& sp){
 
         std::cout << "Free space left: " << sp.getFreeSpaceInBytes() << " bytes." << std::endl;
 
-        uint16_t lenInBytes = ((double)rand() / RAND_MAX) * 32;
+        uint16_t lenInBytes = ((double)rand() / RAND_MAX) * 64;
         if(!sp.hasEnoughSpace(lenInBytes)) {
             std::cout << "Thats not enough for " << lenInBytes
                 << " bytes. (Consider Slot size of " << sizeof(Slot) << " bytes.)" << std::endl;
@@ -47,7 +50,7 @@ void testSlottedPageInsertWithRandomInserts(SlottedPage& sp){
         }
 
         std::cout << "Insert " << lenInBytes << " bytes." << std::endl;
-        uint16_t slotID = sp.insert(data1, lenInBytes);
+        uint16_t slotID = sp.insertData(data1, lenInBytes);
         std::cout << "Got slotID: " << slotID << std::endl;
         assert(slotID == i);
     }
