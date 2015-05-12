@@ -11,16 +11,11 @@
 #include "../Record.h"
 #include "TID.h"
 
-
-const uint8_t FALSE = 0;
-const uint8_t TRUE = 1;
-
 //4 byte Slot
 struct Slot {
+    uint32_t controlBits; //TODO
     uint16_t offset;
-    uint16_t length : 14;
-    uint8_t isTID : 1;
-    uint8_t isRemoved : 1;
+    uint16_t length;
 };
 
 //PAGESIZE SlottedPage
@@ -40,16 +35,20 @@ struct SlottedPage {
      * Only use this method when you are sure, that you can insert!
      * (e.g. hasEnoughSpace == true)
      */
-    uint16_t insert(char const* dataptr, uint16_t lenInBytes, bool isTID);
-    void insertInSlot(uint16_t slotID, char const* dataptr, uint16_t lenInBytes, bool isTID);
+    uint16_t insert(char const* dataptr, uint16_t lenInBytes);
+
+    /*
+     * Try to insert data directly into the slot
+     */
+    bool tryUpdate(uint16_t slotID, char const* dataptr, uint16_t lenInBytes);
+
+    void insertIndirection(uint16_t slotID, TID indirection);
 
     /*
         * Only use this method, when you are sure, that you can remove it
         * e.g. it must exist and is no indirection (hasValidData)
         */
     void remove(uint16_t slotID);
-
-    void update(uint16_t slotID, char const* dataptr, uint16_t lenInBytes);
 
     Record &getRecordFromSlotID(uint16_t slotID);
 
@@ -66,8 +65,7 @@ struct SlottedPage {
     uint16_t getLenBytes(uint16_t slotID);
     TID getIndirection(uint16_t slotID);
 
-    bool isDataPtr(uint16_t slotID);
-    bool isTID(uint16_t slotID);
+    bool isIndirection(uint16_t slotID);
     bool isRemoved(uint16_t slotID);
     bool isValid(uint16_t slotID); //slotID < slotCount
     /*

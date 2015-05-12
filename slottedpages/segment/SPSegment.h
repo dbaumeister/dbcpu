@@ -5,12 +5,12 @@
 #ifndef PROJECT_SPSEGMENT_H
 #define PROJECT_SPSEGMENT_H
 
-#include <stdint.h>
 #include <iostream>
+#include <stdexcept>
+#include <stdint.h>
 
 #include "SlottedPage.h"
 #include "TID.h"
-
 #include "../../buffer/BufferManager.h"
 #include "../../buffer/BufferFrame.h"
 #include "../Record.h"
@@ -18,26 +18,23 @@
 
 class SPSegment {
 public:
-    SPSegment(BufferManager& bm) : bufferManager(bm), slottedPageCount(0) {}
+    SPSegment(BufferManager& bm, uint16_t segmentID) : bufferManager(bm), slottedPageCount(0) {
+        segIDShifted = ((uint64_t)segmentID) << 48;
+    }
 
-    TID insert(Record& record, bool isTID = false);
+    TID insert(Record& record);
     bool remove(TID tid);
     bool update(TID tid, Record& record);
     Record& lookup(TID tid);
 
-    ~SPSegment() {
-        for(BufferFrame* bufferFrame : bufferFrames){
-            bufferManager.unfixPage(bufferFrame, true);
-        }
-    }
-
 private:
     BufferManager& bufferManager;
-    std::vector<BufferFrame*> bufferFrames;
 
     uint64_t slottedPageCount;
-    std::unordered_map<uint64_t, SlottedPage*> slottedPageMap; //stores all Slotted Pages for fast lookups (uint64_t => pageID)
 
+    uint64_t segIDShifted;
+
+    uint64_t createID(uint64_t pageID);
 };
 
 #endif //PROJECT_SPSEGMENT_H

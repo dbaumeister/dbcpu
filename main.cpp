@@ -18,11 +18,11 @@ int main(int argc, const char* argv[])
     std::cout << "Size of Slot: " << sizeof(Slot) << std::endl;
     std::cout << "Size of TID: " << sizeof(TID) << std::endl;
 
-    testSlottedPageInsertWithRandomInserts(sp);
-    testSlottedPageRemove(sp);
+    //testSlottedPageInsertWithRandomInserts(sp);
+    //testSlottedPageRemove(sp);
 
-    std::cout << "Free space after defrag: ";
-    std::cout << sp.defrag() << " bytes." << std::endl;
+    //std::cout << "Free space after defrag: ";
+    //std::cout << sp.defrag() << " bytes." << std::endl;
     return 0;
 }
 
@@ -50,7 +50,7 @@ void testSlottedPageInsertWithRandomInserts(SlottedPage& sp){
         }
 
         std::cout << "Insert " << lenInBytes << " bytes." << std::endl;
-        uint16_t slotID = sp.insert(data1, lenInBytes, false);
+        uint16_t slotID = sp.insert(data1, lenInBytes);
         std::cout << "Got slotID: " << slotID << std::endl;
         assert(slotID == i);
     }
