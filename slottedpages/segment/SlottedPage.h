@@ -41,14 +41,18 @@ struct SlottedPage {
      * (e.g. hasEnoughSpace == true)
      */
     uint16_t insert(char const* dataptr, uint16_t lenInBytes, bool isTID);
+    void insertInSlot(uint16_t slotID, char const* dataptr, uint16_t lenInBytes, bool isTID);
+
+    /*
+        * Only use this method, when you are sure, that you can remove it
+        * e.g. it must exist and is no indirection (hasValidData)
+        */
+    void remove(uint16_t slotID);
+
+    void update(uint16_t slotID, char const* dataptr, uint16_t lenInBytes);
 
     Record &getRecordFromSlotID(uint16_t slotID);
 
-    /*
-     * Only use this method, when you are sure, that you can remove it
-     * e.g. it must exist and is no indirection (hasValidData)
-     */
-    void remove(uint16_t slotID);
 
     //Test if we can insert lenInBytes data
     bool hasEnoughSpace(uint16_t lenInBytes);
@@ -57,6 +61,7 @@ struct SlottedPage {
     bool hasEnoughSpaceAfterDefrag(uint16_t lenInBytes);
 
     uint16_t getFreeSpaceInBytes();
+    uint16_t getFreeSpaceInBytesAfterDefrag();
 
     uint16_t getLenBytes(uint16_t slotID);
     TID getIndirection(uint16_t slotID);

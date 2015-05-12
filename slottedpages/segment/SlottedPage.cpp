@@ -24,17 +24,36 @@ uint16_t SlottedPage::insert(char const* dataptr, uint16_t lenInBytes, bool isTI
     return header.slotCount++; //first return, then increase!!
 }
 
+void SlottedPage::insertInSlot(uint16_t slotID, char const* dataptr, uint16_t lenInBytes, bool isTID){
+    Slot* newSlot = &slots[slotID];
 
-Record &SlottedPage::getRecordFromSlotID(uint16_t slotID){
-    Slot s = slots[slotID];
-    return *new Record(s.length, &data[s.offset]);
+    header.dataStart -= lenInBytes;
+    memcpy( &data[header.dataStart], dataptr, lenInBytes);
 
+    newSlot->offset = header.dataStart;
+    newSlot->length = lenInBytes;
+
+    if(isTID){
+        newSlot->isTID = TRUE;
+    } else newSlot->isTID = FALSE;
+
+    newSlot->isRemoved = FALSE;
+}
+
+void SlottedPage::update(uint16_t slotID, char const *dataptr, uint16_t lenInBytes) {
 
 }
 
 void SlottedPage::remove(uint16_t slotID) {
     header.fragmentedSpace += slots[slotID].length;
     slots[slotID].isRemoved = TRUE;
+}
+
+
+
+Record &SlottedPage::getRecordFromSlotID(uint16_t slotID){
+    Slot s = slots[slotID];
+    return *new Record(s.length, &data[s.offset]);
 }
 
 
@@ -45,6 +64,10 @@ bool SlottedPage::hasEnoughSpace(uint16_t lenInBytes){
 //Test if we can insert lenInBytes data
 bool SlottedPage::hasEnoughSpaceAfterDefrag(uint16_t lenInBytes){
     return getFreeSpaceInBytes() + header.fragmentedSpace >= lenInBytes + sizeof(Slot);
+}
+
+uint16_t SlottedPage::getFreeSpaceInBytesAfterDefrag(){
+    return getFreeSpaceInBytes() + header.fragmentedSpace;
 }
 
 uint16_t SlottedPage::getFreeSpaceInBytes(){
@@ -102,3 +125,4 @@ uint16_t SlottedPage::defrag(){
     header.fragmentedSpace = 0;
     return getFreeSpaceInBytes();
 }
+

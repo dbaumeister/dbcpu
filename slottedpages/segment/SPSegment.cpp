@@ -66,6 +66,7 @@ bool SPSegment::remove(TID tid) {
     return true;
 }
 
+// updates only non removed tids
 bool SPSegment::update(TID tid, Record &record) {
     // find corresponding page via lookup table
     auto it = slottedPageMap.find(tid.pageID);
@@ -77,28 +78,59 @@ bool SPSegment::update(TID tid, Record &record) {
 
     if(!sp->isValid(tid.slotID)) return false;
 
-    // check if the length of data is different
-    uint16_t prevLenBytes = sp->getLenBytes(tid.slotID);
+    Slot* s = &sp->slots[tid.slotID];
+    if(s->isRemoved){
+        //reuse this slot and insert data if possible
+        if(sp->getFreeSpaceInBytes() >= record.getLen()){
+            sp->insertInSlot(tid.slotID, record.getData(), record.getLen(), false);
 
-    //      - equal: just overwrite
-    //      - record lesser than before: update length, too and fragmentation
-    //      - record length higher -> check if there is enough space on this page -> insert indirection(maybe via insert method?) or rearrange data
+        } else if(sp->getFreeSpaceInBytesAfterDefrag() >= record.getLen()){
+            sp->defrag();
+            sp->insertInSlot(tid.slotID, record.getData(), record.getLen(), false);
 
+        } else if(sp->hasEnoughSpace(sizeof(TID))){ //otherwise insert an indirection
+            TID newlyInsertedTID = insert(record, false);
+            sp->insertInSlot(tid.slotID, (char const*) &newlyInsertedTID, sizeof(TID), true);
+
+        } else if(sp->hasEnoughSpaceAfterDefrag(sizeof(TID))){ //otherwise insert an indirection
+            sp->defrag();
+            TID newlyInsertedTID = insert(record, false);
+            sp->insertInSlot(tid.slotID, (char const*) &newlyInsertedTID, sizeof(TID), true);
+
+        } else {
+            //TODO: was machen, wenn indirection nichtmehr reinpasst
+            printf("Could not update TID because there is no space for an indirection.");
+            return false;
+        }
+
+    }
+    else if(s->isTID){
+
+    }
 
     return true;
 }
 
+/*
+ * Attention!
+ * Returned value has to be freed!
+ */
 Record &SPSegment::lookup(TID tid) {
     // find corresponding page via lookup table
     auto it = slottedPageMap.find(tid.pageID);
 
     // return if no page was found
-    if(it == slottedPageMap.end()) exit(-1); //TODO
+    if(it == slottedPageMap.end()){
+        printf("TID not found. (PageID: %lu, SlotID: %u)\n", tid.pageID, tid.slotID);
+        exit(-1);
+    }  //TODO
 
     SlottedPage* sp = it->second;
 
-    if(!sp->isValid(tid.slotID)) exit(-1); //TODO
-
+    if(!sp->isValid(tid.slotID)){
+        printf("SlotID of TID not valid. (PageID: %lu, SlotID: %u)\n", tid.pageID, tid.slotID);
+        exit(-1);
+    }  //TODO
 
     if(sp->isTID(tid.slotID)){
         TID indirectionTID = sp->getIndirection(tid.slotID);
