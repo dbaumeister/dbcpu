@@ -31,7 +31,7 @@ void testSlottedPageRemove(SlottedPage& sp){
 
     std::cout << "Fragmented space: " << sp.header.fragmentedSpace << " bytes." << std::endl;
     for(uint16_t i = 0; i < sp.header.slotCount; ++i){
-        sp.removeData(i);
+        sp.remove(i);
         std::cout << "Fragmented space: " << sp.header.fragmentedSpace << " bytes." << std::endl;
     }
 }
@@ -50,7 +50,7 @@ void testSlottedPageInsertWithRandomInserts(SlottedPage& sp){
         }
 
         std::cout << "Insert " << lenInBytes << " bytes." << std::endl;
-        uint16_t slotID = sp.insertData(data1, lenInBytes);
+        uint16_t slotID = sp.insert(data1, lenInBytes, false);
         std::cout << "Got slotID: " << slotID << std::endl;
         assert(slotID == i);
     }

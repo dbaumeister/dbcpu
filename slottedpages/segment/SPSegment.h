@@ -20,19 +20,22 @@ class SPSegment {
 public:
     SPSegment(BufferManager& bm) : bufferManager(bm), slottedPageCount(0) {}
 
-    TID insert(Record& record);
+    TID insert(Record& record, bool isTID = false);
     bool remove(TID tid);
     bool update(TID tid, Record& record);
     Record& lookup(TID tid);
 
-    //~SPSegment() {
-        //TODO unfix all pages
-    //}
+    ~SPSegment() {
+        for(BufferFrame* bufferFrame : bufferFrames){
+            bufferManager.unfixPage(bufferFrame, true);
+        }
+    }
 
 private:
     BufferManager& bufferManager;
-    uint64_t slottedPageCount;
+    std::vector<BufferFrame*> bufferFrames;
 
+    uint64_t slottedPageCount;
     std::unordered_map<uint64_t, SlottedPage*> slottedPageMap; //stores all Slotted Pages for fast lookups (uint64_t => pageID)
 
 };

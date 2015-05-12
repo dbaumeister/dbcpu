@@ -15,38 +15,12 @@
 const uint8_t FALSE = 0;
 const uint8_t TRUE = 1;
 
-//8 byte Slot
+//4 byte Slot
 struct Slot {
-    struct Indirection { //-> Indirect TRUE - Data FALSE
-        uint16_t slotID : 16;
-        uint64_t pageID : 46;
-        uint8_t isIndirect : 1;
-        uint8_t isData : 1;
-    };
-    struct DataPtr { //-> Indirect FALSE - Data FALSE
-        uint32_t length : 32;
-        uint32_t offset : 30;
-        uint8_t isIndirect : 1;
-        uint8_t isData : 1;
-    };
-    struct Data { //-> Indirect FALSE - Data TRUE
-        uint64_t data : 56;
-        uint8_t numBytes : 6;
-        uint8_t isIndirect : 1;
-        uint8_t isData : 1;
-    };
-
-    //When removed: Indirect TRUE && Data TRUE!!
-
-    union {
-        //The last two bits are the same
-        // -> check with isRedirect == TRUE/FALSE
-        // -> check with isData == TRUE/FALSE
-        Indirection indirection;
-        DataPtr dataPtr;
-        Data data;
-    };
-
+    uint16_t offset;
+    uint16_t length : 14;
+    uint8_t isTID : 1;
+    uint8_t isRemoved : 1;
 };
 
 //PAGESIZE SlottedPage
@@ -66,25 +40,15 @@ struct SlottedPage {
      * Only use this method when you are sure, that you can insert!
      * (e.g. hasEnoughSpace == true)
      */
-    uint16_t insertData(char const* dataptr, uint16_t lenInBytes);
+    uint16_t insert(char const* dataptr, uint16_t lenInBytes, bool isTID);
 
-    /*
-     * insert an indirection to goalTID into the slotID (which must exist beforehand)
-     */
-    void insertIndirection(uint16_t slotID, TID goalTID);
-
-    Record getRecordFromSlotID(uint16_t slotID);
+    Record &getRecordFromSlotID(uint16_t slotID);
 
     /*
      * Only use this method, when you are sure, that you can remove it
      * e.g. it must exist and is no indirection (hasValidData)
      */
-    Record removeData(uint16_t slotID);
-
-    /*
-     * TODO See if this function is needed at all
-     */
-    void removeIndirection(uint16_t slotID);
+    void remove(uint16_t slotID);
 
     //Test if we can insert lenInBytes data
     bool hasEnoughSpace(uint16_t lenInBytes);
@@ -94,8 +58,13 @@ struct SlottedPage {
 
     uint16_t getFreeSpaceInBytes();
 
-    bool hasValidData(uint16_t slotID);
+    uint16_t getLenBytes(uint16_t slotID);
+    TID getIndirection(uint16_t slotID);
 
+    bool isDataPtr(uint16_t slotID);
+    bool isTID(uint16_t slotID);
+    bool isRemoved(uint16_t slotID);
+    bool isValid(uint16_t slotID); //slotID < slotCount
     /*
      * Reorders data of not removed slots to get free space
      * Returns free space in bytes after defragmentation

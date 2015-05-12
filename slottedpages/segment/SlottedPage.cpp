@@ -5,81 +5,81 @@
 #include "SlottedPage.h"
 
 
-uint16_t SlottedPage::insertData(char const* dataptr, uint16_t lenInBytes){
+uint16_t SlottedPage::insert(char const* dataptr, uint16_t lenInBytes, bool isTID){
     Slot newSlot;
-    if(lenInBytes <= sizeof(Slot) - 1) //we can store (sizeof(Slot) - 1) bytes directly
-    {
-        memcpy(&newSlot.data, dataptr, lenInBytes);
-        newSlot.data.numBytes = lenInBytes;
-        newSlot.data.isData = TRUE;
-        newSlot.data.isIndirect = FALSE;
 
-    } else { //store pointer to data in slot
-        header.dataStart -= lenInBytes;
-        memcpy( &data[header.dataStart], dataptr, lenInBytes);
-        newSlot.dataPtr.offset = header.dataStart;
-        newSlot.dataPtr.length = lenInBytes;
-        newSlot.dataPtr.isData = FALSE;
-        newSlot.dataPtr.isIndirect = FALSE;
-    }
+    header.dataStart -= lenInBytes;
+    memcpy( &data[header.dataStart], dataptr, lenInBytes);
+
+    newSlot.offset = header.dataStart;
+    newSlot.length = lenInBytes;
+
+    if(isTID){
+        newSlot.isTID = TRUE;
+    } else newSlot.isTID = FALSE;
+
+    newSlot.isRemoved = FALSE;
+
     slots[header.slotCount] = newSlot;
     return header.slotCount++; //first return, then increase!!
 }
 
-void SlottedPage::insertIndirection(uint16_t slotID, TID goalTID){
-    slots[slotID].indirection.pageID = goalTID.pageID;
-    slots[slotID].indirection.slotID = goalTID.slotID;
-    slots[slotID].indirection.isIndirect = TRUE;
-    slots[slotID].indirection.isData = FALSE;
-}
 
-Record SlottedPage::getRecordFromSlotID(uint16_t slotID){
+Record &SlottedPage::getRecordFromSlotID(uint16_t slotID){
     Slot s = slots[slotID];
-    if(s.dataPtr.isData == FALSE) {
-        return Record(s.dataPtr.length, &data[s.dataPtr.offset]);
-    }
-    else {
-        return Record(s.data.numBytes, (char*)&s.data);
-    }
+    return *new Record(s.length, &data[s.offset]);
+
 
 }
 
-Record SlottedPage::removeData(uint16_t slotID) {
-    if(slots[slotID].dataPtr.isData == FALSE){
-        header.fragmentedSpace += slots[slotID].dataPtr.length;
-    }
-    slots[slotID].indirection.isIndirect = TRUE;
-    slots[slotID].indirection.isData = TRUE;
-    //See definition of Slot TRUE/TRUE -> removed
-
-    return getRecordFromSlotID(slotID); //TODO maybe change to void
-}
-
-void SlottedPage::removeIndirection(uint16_t slotID) {
-    slots[slotID].indirection.isIndirect = TRUE;
-    slots[slotID].indirection.isData = TRUE;
+void SlottedPage::remove(uint16_t slotID) {
+    header.fragmentedSpace += slots[slotID].length;
+    slots[slotID].isRemoved = TRUE;
 }
 
 
 bool SlottedPage::hasEnoughSpace(uint16_t lenInBytes){
-    uint16_t t = ((lenInBytes <= sizeof(Slot) - 1) ? (uint16_t)0 : lenInBytes); // accounts for possible storage directly in the Slot
-    return getFreeSpaceInBytes() >= t + sizeof(Slot);
+    return getFreeSpaceInBytes() >= lenInBytes + sizeof(Slot);
 }
 
 //Test if we can insert lenInBytes data
 bool SlottedPage::hasEnoughSpaceAfterDefrag(uint16_t lenInBytes){
-    uint16_t t = ((lenInBytes <= sizeof(Slot) - 1) ? (uint16_t)0 : lenInBytes); // accounts for possible storage directly in the Slot
-    return getFreeSpaceInBytes() + header.fragmentedSpace >= t + sizeof(Slot);
+    return getFreeSpaceInBytes() + header.fragmentedSpace >= lenInBytes + sizeof(Slot);
 }
 
 uint16_t SlottedPage::getFreeSpaceInBytes(){
     return header.dataStart - header.slotCount * sizeof(Slot);
 }
 
-bool SlottedPage::hasValidData(uint16_t slotID) {
-    //the slot must exist -> slotID < slotCount
-    //the flag isIndirect must not be set
-    return slotID < header.slotCount && slots[slotID].indirection.isIndirect == FALSE;
+uint16_t SlottedPage::getLenBytes(uint16_t slotID) {
+    return slots[slotID].length;
+}
+
+TID SlottedPage::getIndirection(uint16_t slotID) {
+    Slot s = slots[slotID];
+    TID tid;
+    memcpy(&tid, &data[s.offset], sizeof(TID));
+    return tid;
+}
+
+bool SlottedPage::isDataPtr(uint16_t slotID) {
+    Slot s = slots[slotID];
+    return s.isTID == FALSE && !isRemoved(slotID);
+}
+
+bool SlottedPage::isTID(uint16_t slotID) {
+    Slot s = slots[slotID];
+    return s.isTID == TRUE && !isRemoved(slotID);
+}
+
+bool SlottedPage::isRemoved(uint16_t slotID) {
+    Slot s = slots[slotID];
+    return  s.isRemoved == TRUE;
+}
+
+bool SlottedPage::isValid(uint16_t slotID) {
+    Slot s = slots[slotID];
+    return slotID < header.slotCount;
 }
 
 /*
@@ -90,10 +90,10 @@ uint16_t SlottedPage::defrag(){
     SlottedPage spWorkingCopy;
     for(int i = 0; i < header.slotCount; ++i){
         Slot* s = &slots[i];
-        if(s->dataPtr.isData == FALSE && s->dataPtr.isIndirect == FALSE){
-            uint16_t wsID = spWorkingCopy.insertData(&data[s->dataPtr.offset], s->dataPtr.length);
+        if(s->isRemoved == FALSE){
+            uint16_t wsID = spWorkingCopy.insert(&data[s->offset], s->length, s->isTID == TRUE);
             Slot ws = spWorkingCopy.slots[wsID];
-            s->dataPtr.offset = ws.dataPtr.offset;
+            s->offset = ws.offset;
         }
     }
     //data is now sorted at the back -> update our SlottedPage
