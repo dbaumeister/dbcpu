@@ -37,7 +37,7 @@ void testSlottedPageRemove(SlottedPage& sp){
 }
 
 void testSlottedPageInsertWithRandomInserts(SlottedPage& sp){
-    void* data1 = malloc(PAGESIZE);
+    char* data1 = (char*)malloc(PAGESIZE);
     for(int i = 0; ;++i){
 
         std::cout << "Free space left: " << sp.getFreeSpaceInBytes() << " bytes." << std::endl;

@@ -5,17 +5,40 @@
 #include "SPSegment.h"
 
 TID SPSegment::insert(Record &record) {
-    // 1. find page with enough space
-    // (either slotpointer - datapointer has enough space or we have enough fragmented space -> defragment)
+    // find page with enough space
+    for(auto it : slottedPageMap){
+        SlottedPage* sp = it.second;
+        if(sp->hasEnoughSpace(record.getLen())){
+            TID tid;
+            tid.slotID = sp->insertData(record.getData(), record.getLen());
+            tid.pageID = it.first;
+            return tid;
+        }
+    }
+
+    //no free space found ->search again for fragmented
+    for(auto it : slottedPageMap){
+        SlottedPage* sp = it.second;
+        if(sp->hasEnoughSpaceAfterDefrag(record.getLen())){
+            sp->defrag();
+            TID tid;
+            tid.slotID = sp->insertData(record.getData(), record.getLen());
+            tid.pageID = it.first;
+            return tid;
+        }
+    }
+
+
     // 2. if not found -> create a new page (with BufferManager.fixPage)
-    // 3. Create TID with slotID & pageID
-    //      and create corresponding slot
-    // 4. insert record data of (record.len) to free data space
-    // 5. update data pointer
-    // 6. update slot (with pointer to data)
-    // 7. append slot
-    // 8. return TID
-    return TID();
+    SlottedPage* sp = new SlottedPage();
+    slottedPageMap.insert(std::pair<uint64_t, SlottedPage*>(slottedPageCount, sp));
+
+    TID tid;
+    tid.slotID = sp->insertData(record.getData(), record.getLen());
+    tid.pageID = slottedPageCount;
+
+    ++slottedPageCount;
+    return tid;
 }
 
 bool SPSegment::remove(TID tid) {
