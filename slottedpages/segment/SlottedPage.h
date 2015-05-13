@@ -11,7 +11,6 @@
 #include "../Record.h"
 #include "TID.h"
 
-//4 byte Slot
 struct Slot {
     uint32_t controlBits; //TODO
     uint16_t offset;
@@ -35,12 +34,13 @@ struct SlottedPage {
      * Only use this method when you are sure, that you can insert!
      * (e.g. hasEnoughSpace == true)
      */
-    uint16_t insert(char const* dataptr, uint16_t lenInBytes);
+    uint16_t insertNewSlot(char const* dataptr, uint16_t lenInBytes);
 
     /*
      * Try to insert data directly into the slot
      */
     bool tryUpdate(uint16_t slotID, char const* dataptr, uint16_t lenInBytes);
+    bool tryUpdateSlotWithIndirection(uint16_t slotID, char const* dataptr, uint16_t lenInBytes);
 
     void insertIndirection(uint16_t slotID, TID indirection);
 
@@ -62,7 +62,6 @@ struct SlottedPage {
     uint16_t getFreeSpaceInBytes();
     uint16_t getFreeSpaceInBytesAfterDefrag();
 
-    uint16_t getLenBytes(uint16_t slotID);
     TID getIndirection(uint16_t slotID);
 
     bool isIndirection(uint16_t slotID);

@@ -12,17 +12,17 @@ TID SPSegment::insert(Record &record) {
         BufferFrame* bufferFrame = bufferManager.fixPage(createID(i), true);
         SlottedPage* sp = (SlottedPage*) bufferFrame->getData();
 
-        if(sp->hasEnoughSpace(record.getLen())){
+        if(sp->hasEnoughSpace((uint16_t) record.getLen())){
             TID tid;
-            tid.slotID = sp->insert(record.getData(), record.getLen());
+            tid.slotID = sp->insertNewSlot(record.getData(), (uint16_t)record.getLen());
             tid.pageID = i;
             bufferManager.unfixPage(bufferFrame, true);
             return tid;
         }
-        else if(sp->hasEnoughSpaceAfterDefrag(record.getLen())){ //no free space found ->search again for fragmented
+        else if(sp->hasEnoughSpaceAfterDefrag((uint16_t)record.getLen())){ //no free space found ->search again for fragmented
             sp->defrag();
             TID tid;
-            tid.slotID = sp->insert(record.getData(), record.getLen());
+            tid.slotID = sp->insertNewSlot(record.getData(), (uint16_t)record.getLen());
             tid.pageID = i;
             bufferManager.unfixPage(bufferFrame, true);
             return tid;
@@ -34,7 +34,7 @@ TID SPSegment::insert(Record &record) {
     BufferFrame* bufferFrame = bufferManager.fixPage(createID(slottedPageCount), true);
     SlottedPage* sp = (SlottedPage*) bufferFrame->getData();
     TID tid;
-    tid.slotID = sp->insert(record.getData(), record.getLen());
+    tid.slotID = sp->insertNewSlot(record.getData(), (uint16_t)record.getLen());
     tid.pageID = slottedPageCount;
 
     ++slottedPageCount;
@@ -77,10 +77,59 @@ bool SPSegment::update(TID tid, Record &record) {
         return false;
     }
 
-    //TODO update
+    if(sp->isRemoved(tid.slotID)){
+        bool success = sp->tryUpdateSlotWithIndirection(tid.slotID,  record.getData(), (uint16_t) record.getLen());
+        if(success){
+            bufferManager.unfixPage(bufferFrame, true);
+            return true;
+        } else {
+            TID indirectionTID = insert(record);
+            sp->insertIndirection(tid.slotID, indirectionTID);
+            bufferManager.unfixPage(bufferFrame, true);
+            return true;
+        }
+    }
 
-    bufferManager.unfixPage(bufferFrame, true);
-    return true;
+    if(sp->isIndirection(tid.slotID)){
+        TID indirectionTID = sp->getIndirection(tid.slotID);
+        bool success = sp->tryUpdateSlotWithIndirection(tid.slotID, record.getData(), (uint16_t) record.getLen());
+        if(success){
+            remove(indirectionTID);
+            bufferManager.unfixPage(bufferFrame, true);
+            return true;
+        } else {
+            //try to fit the update into the indirection
+            BufferFrame* bufferFrameIndir = bufferManager.fixPage(createID(indirectionTID.pageID), true);
+            SlottedPage* spIndir = (SlottedPage*) bufferFrameIndir->getData();
+
+            success = spIndir->tryUpdate(indirectionTID.slotID, record.getData(), (uint16_t)record.getLen());
+            if(success) {
+                bufferManager.unfixPage(bufferFrameIndir, true);
+                bufferManager.unfixPage(bufferFrame, false);
+                return true;
+            }
+            else {
+                spIndir->remove(indirectionTID.slotID);
+                bufferManager.unfixPage(bufferFrameIndir, true);
+                indirectionTID = insert(record);
+                sp->insertIndirection(tid.slotID, indirectionTID);
+                bufferManager.unfixPage(bufferFrame, true);
+                return true;
+            }
+        }
+    }
+
+    //no indirection and not removed -> update here
+    bool success = sp->tryUpdate(tid.slotID,  record.getData(), (uint16_t) record.getLen());
+    if(success){
+        bufferManager.unfixPage(bufferFrame, true);
+        return true;
+    } else {
+        TID indirectionTID = insert(record);
+        sp->insertIndirection(tid.slotID, indirectionTID);
+        bufferManager.unfixPage(bufferFrame, true);
+        return true;
+    }
 }
 
 /*
@@ -89,7 +138,7 @@ bool SPSegment::update(TID tid, Record &record) {
  */
 Record &SPSegment::lookup(TID tid) {
 
-    BufferFrame* bufferFrame = bufferManager.fixPage(createID(tid.pageID), true);
+    BufferFrame* bufferFrame = bufferManager.fixPage(createID(tid.pageID), false);
     SlottedPage* sp = (SlottedPage*) bufferFrame->getData();
 
     if(!sp->isValid(tid.slotID)){

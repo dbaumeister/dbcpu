@@ -5,7 +5,7 @@
 #include "SlottedPage.h"
 
 
-uint16_t SlottedPage::insert(char const* dataptr, uint16_t lenInBytes){
+uint16_t SlottedPage::insertNewSlot(char const* dataptr, uint16_t lenInBytes){
     Slot newSlot;
 
     header.dataStart -= lenInBytes;
@@ -20,17 +20,77 @@ uint16_t SlottedPage::insert(char const* dataptr, uint16_t lenInBytes){
     return header.slotCount++; //first return, then increase!!
 }
 
-
+//TODO
 bool SlottedPage::tryUpdate(uint16_t slotID, char const *dataptr, uint16_t lenInBytes) {
+    Slot* s = &slots[slotID];
     //1. (length is the same) -> insert at the same position
-    //2. (length is smaller than before) -> insert at the same position  -> update length & fragmented
-    //3. (length is greater than before && space on page) -> insert anywhere on page -> update length, offset, fragmented
-    //4. (length is greater than before && space after defrag) -> defrag and insert anywhere on page -> update length & offset
+    //& 2. (length is smaller than before) -> insert at the same position  -> update length & fragmented
+    if(s->length >= lenInBytes){
+        memcpy(&data[s->offset], dataptr, lenInBytes);
+        header.fragmentedSpace += s->length - lenInBytes;
+        s->length = lenInBytes;
+        return true;
+    }
+    else if( s->length < lenInBytes){
+        //3. (length is greater than before && space on page) -> insert anywhere on page -> update length, offset, fragmented
+        if(getFreeSpaceInBytes() >= lenInBytes){
+            header.fragmentedSpace += s->length;
+
+            header.dataStart -= lenInBytes;
+            memcpy( &data[header.dataStart], dataptr, lenInBytes);
+
+            s->offset = header.dataStart;
+            s->length = lenInBytes;
+
+            //TODO controlbits
+            return true;
+        }
+        //4. (length is greater than before && space after defrag) -> defrag and insert anywhere on page -> update length & offset
+        else if(getFreeSpaceInBytesAfterDefrag() + s->length >= lenInBytes){
+            //TODO set controlbit of slot to removed -> its space can be used by defrag
+            defrag();
+
+            header.dataStart -= lenInBytes;
+            memcpy( &data[header.dataStart], dataptr, lenInBytes);
+
+            s->offset = header.dataStart;
+            s->length = lenInBytes;
+            //TODO controlbits
+            return true;
+        }
+    }
     //5. else return false
     return false;
 }
 
+bool SlottedPage::tryUpdateSlotWithIndirection(uint16_t slotID, char const *dataptr, uint16_t lenInBytes) {
+    Slot* s = &slots[slotID];
+    if(getFreeSpaceInBytes() >= lenInBytes){
+        header.dataStart -= lenInBytes;
+        memcpy( &data[header.dataStart], dataptr, lenInBytes);
 
+        s->offset = header.dataStart;
+        s->length = lenInBytes;
+
+        //TODO controlbits
+        //here we have completely removed the TID, which was previously stored in this slot
+        return true;
+    }
+        //4. (length is greater than before && space after defrag) -> defrag and insert anywhere on page -> update length & offset
+    else if(getFreeSpaceInBytesAfterDefrag() >= lenInBytes){
+        defrag();
+
+        header.dataStart -= lenInBytes;
+        memcpy( &data[header.dataStart], dataptr, lenInBytes);
+
+        s->offset = header.dataStart;
+        s->length = lenInBytes;
+        //TODO controlbits
+        //here we have completely removed the TID, which was previously stored in this slot
+        return true;
+    }
+    return false; //try to use this slot to insert data to the page
+}
 
 void SlottedPage::insertIndirection(uint16_t slotID, TID indirection) {
     memcpy(&slots[slotID], &indirection, sizeof(TID));
@@ -53,14 +113,11 @@ Record &SlottedPage::getRecordFromSlotID(uint16_t slotID){
 }
 
 
-bool SlottedPage::hasEnoughSpace(uint16_t lenInBytes){
-    return getFreeSpaceInBytes() >= lenInBytes + sizeof(Slot);
+TID SlottedPage::getIndirection(uint16_t slotID) {
+    TID tid;
+    memcpy(&tid, &slots[slotID], sizeof(TID));
+    return tid;
 }
-
-bool SlottedPage::hasEnoughSpaceAfterDefrag(uint16_t lenInBytes){
-    return getFreeSpaceInBytes() + header.fragmentedSpace >= lenInBytes + sizeof(Slot);
-}
-
 
 uint16_t SlottedPage::getFreeSpaceInBytes(){
     return header.dataStart - header.slotCount * (uint16_t) sizeof(Slot);
@@ -70,14 +127,13 @@ uint16_t SlottedPage::getFreeSpaceInBytesAfterDefrag(){
     return getFreeSpaceInBytes() + header.fragmentedSpace;
 }
 
-uint16_t SlottedPage::getLenBytes(uint16_t slotID) {
-    return slots[slotID].length;
+
+bool SlottedPage::hasEnoughSpace(uint16_t lenInBytes){
+    return getFreeSpaceInBytes() >= lenInBytes + sizeof(Slot);
 }
 
-TID SlottedPage::getIndirection(uint16_t slotID) {
-    TID tid;
-    memcpy(&tid, &slots[slotID], sizeof(TID));
-    return tid;
+bool SlottedPage::hasEnoughSpaceAfterDefrag(uint16_t lenInBytes){
+    return getFreeSpaceInBytes() + header.fragmentedSpace >= lenInBytes + sizeof(Slot);
 }
 
 
@@ -104,9 +160,9 @@ bool SlottedPage::isValid(uint16_t slotID) {
 uint16_t SlottedPage::defrag(){
     SlottedPage spWorkingCopy;
     for(int i = 0; i < header.slotCount; ++i){
-        if(!isRemoved(i)){
+        if(!isRemoved(i) && !isIndirection(i)){
             Slot* s = &slots[i];
-            uint16_t wsID = spWorkingCopy.insert(&data[s->offset], s->length);
+            uint16_t wsID = spWorkingCopy.insertNewSlot(&data[s->offset], s->length);
             s->offset = spWorkingCopy.slots[wsID].offset;
         }
     }

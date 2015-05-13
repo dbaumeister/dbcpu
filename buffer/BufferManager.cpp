@@ -30,7 +30,7 @@ BufferFrame* BufferManager::fixPage(uint64_t id, bool isExclusive) {
     //If we did not find it:
     if(pageCount < pageCountMax){
         //if we have not reached our maxPageCount -> create a BufferFrame
-        bufferFrame = createBufferFrame(id); //TODO: critical, id might not be safe!
+        bufferFrame = createBufferFrame(id);
 
         bufferFrame->lockFrame(isExclusive); //lock until the other competitor unfixes its frame and we can use it
         bufferFrame->fix();

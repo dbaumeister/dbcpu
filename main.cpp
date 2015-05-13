@@ -50,7 +50,7 @@ void testSlottedPageInsertWithRandomInserts(SlottedPage& sp){
         }
 
         std::cout << "Insert " << lenInBytes << " bytes." << std::endl;
-        uint16_t slotID = sp.insert(data1, lenInBytes);
+        uint16_t slotID = sp.insertNewSlot(data1, lenInBytes);
         std::cout << "Got slotID: " << slotID << std::endl;
         assert(slotID == i);
     }
