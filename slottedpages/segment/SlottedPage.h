@@ -28,7 +28,7 @@ struct SlottedPage {
         uint16_t slotCount = 0; //is also a pointer to the first free slot
         uint16_t dataStart = PAGESIZE - sizeof(SPHeader);
         uint16_t fragmentedSpace = 0;
-        uint16_t padding;
+        uint16_t numUnusedSlots = 0;
     } header;
     union {
         Slot slots[(PAGESIZE - sizeof(SPHeader)) / sizeof(Slot)];
@@ -47,6 +47,7 @@ struct SlottedPage {
      */
     bool tryUpdate(uint16_t slotID, char const* dataptr, uint16_t lenInBytes);
     bool tryUpdateSlotWithIndirection(uint16_t slotID, char const* dataptr, uint16_t lenInBytes);
+    bool tryUpdateRemovedSlot(uint16_t slotID, char const* dataptr, uint16_t lenInBytes);
 
     void insertIndirection(uint16_t slotID, TID indirection);
 
@@ -67,6 +68,8 @@ struct SlottedPage {
 
     uint16_t getFreeSpaceInBytes();
     uint16_t getFreeSpaceInBytesAfterDefrag();
+    uint16_t getNumUnusedSlots();
+    uint16_t getFirstUnusedSlot();
 
     TID getIndirection(uint16_t slotID);
 

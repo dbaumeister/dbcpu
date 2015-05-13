@@ -12,6 +12,20 @@ TID SPSegment::insert(Record &record) {
         BufferFrame* bufferFrame = bufferManager.fixPage(createID(i), true);
         SlottedPage* sp = (SlottedPage*) bufferFrame->getData();
 
+        if(sp->getNumUnusedSlots() > 0) {
+            uint16_t slotID = sp->getFirstUnusedSlot();
+            if(sp->isValid(slotID)){
+                if(sp->tryUpdateRemovedSlot(slotID, record.getData(), record.getLen())){
+                    //inserting in slot was successful
+                    TID tid;
+                    tid.slotID = slotID;
+                    tid.pageID = i;
+                    bufferManager.unfixPage(bufferFrame, true);
+                    return tid;
+                }
+            }
+        }
+
         if(sp->hasEnoughSpace((uint16_t) record.getLen())){
             TID tid;
             tid.slotID = sp->insertNewSlot(record.getData(), (uint16_t)record.getLen());

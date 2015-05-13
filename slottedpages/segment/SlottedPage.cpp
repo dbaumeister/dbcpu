@@ -93,15 +93,25 @@ bool SlottedPage::tryUpdateSlotWithIndirection(uint16_t slotID, char const *data
     return false; //try to use this slot to insert data to the page
 }
 
+
+bool SlottedPage::tryUpdateRemovedSlot(uint16_t slotID, char const *dataptr, uint16_t lenInBytes) {
+    bool success = tryUpdateSlotWithIndirection(slotID, dataptr, lenInBytes);
+    if(success) header.numUnusedSlots--;
+    return success;
+}
+
 void SlottedPage::insertIndirection(uint16_t slotID, TID indirection) {
     memcpy(&slots[slotID], &indirection, sizeof(TID));
 }
 
 void SlottedPage::remove(uint16_t slotID) {
-    if(!isIndirection(slotID) && !isRemoved(slotID)) {
-        header.fragmentedSpace += slots[slotID].length;
+    if(!isRemoved(slotID)){
+        if(!isIndirection(slotID)) {
+            header.fragmentedSpace += slots[slotID].length;
+        }
+        setControlbitsToRemoved(slotID);
+        header.numUnusedSlots++;
     }
-    setControlbitsToRemoved(slotID);
 }
 
 
@@ -128,6 +138,22 @@ uint16_t SlottedPage::getFreeSpaceInBytesAfterDefrag(){
     return getFreeSpaceInBytes() + header.fragmentedSpace;
 }
 
+uint16_t SlottedPage::getNumUnusedSlots() {
+    return header.numUnusedSlots;
+}
+
+/*
+ * You can check if you got a valid slot in return via isValid(slotID)
+ */
+uint16_t SlottedPage::getFirstUnusedSlot() {
+    int i = 0;
+    for(; i < header.slotCount; ++i){
+        if(isRemoved(i)){
+            return i;
+        }
+    }
+    return i;
+}
 
 bool SlottedPage::hasEnoughSpace(uint16_t lenInBytes){
     return getFreeSpaceInBytes() >= lenInBytes + sizeof(Slot);
@@ -177,3 +203,4 @@ void SlottedPage::setControlbitsToRemoved(uint16_t slotID) {
 void SlottedPage::setControlbitsToDefault(uint16_t slotID) {
     slots[slotID].controlBits = BM_DEFAULT;
 }
+
