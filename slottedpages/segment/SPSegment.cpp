@@ -7,12 +7,12 @@
 
 TID SPSegment::insert(Record &record) {
     // find page with enough space
-    //TODO additionally check for removed slots
     for(uint16_t i = 0; i < slottedPageCount; ++i){
         BufferFrame* bufferFrame = bufferManager.fixPage(createID(i), true);
         SlottedPage* sp = (SlottedPage*) bufferFrame->getData();
 
         if(sp->getNumUnusedSlots() > 0) {
+            std::cout << "1 entered." << std::endl;
             uint16_t slotID = sp->getFirstUnusedSlot();
             if(sp->isValid(slotID)){
                 if(sp->tryUpdateRemovedSlot(slotID, record.getData(), record.getLen())){
@@ -27,13 +27,18 @@ TID SPSegment::insert(Record &record) {
         }
 
         if(sp->hasEnoughSpace((uint16_t) record.getLen())){
+            std::cout << "2 entered." << std::endl;
+
             TID tid;
             tid.slotID = sp->insertNewSlot(record.getData(), (uint16_t)record.getLen());
             tid.pageID = i;
             bufferManager.unfixPage(bufferFrame, true);
+
             return tid;
         }
         else if(sp->hasEnoughSpaceAfterDefrag((uint16_t)record.getLen())){ //no free space found ->search again for fragmented
+            std::cout << "3 entered." << std::endl;
+
             sp->defrag();
             TID tid;
             tid.slotID = sp->insertNewSlot(record.getData(), (uint16_t)record.getLen());
@@ -44,15 +49,23 @@ TID SPSegment::insert(Record &record) {
         bufferManager.unfixPage(bufferFrame, false);
     }
 
+    std::cout << "Insert New Page in Segment" << std::endl;
     // If not found -> create a new page (with BufferManager.fixPage)
     BufferFrame* bufferFrame = bufferManager.fixPage(createID(slottedPageCount), true);
     SlottedPage* sp = (SlottedPage*) bufferFrame->getData();
+
+    sp->header.fragmentedSpace = 0;
+    sp->header.numUnusedSlots = 0;
+    sp->header.slotCount = 0;
+    sp->header.dataStart = PAGESIZE - sizeof(SlottedPage::SPHeader);
+
     TID tid;
     tid.slotID = sp->insertNewSlot(record.getData(), (uint16_t)record.getLen());
     tid.pageID = slottedPageCount;
 
     ++slottedPageCount;
     bufferManager.unfixPage(bufferFrame, true);
+
     return tid;
 }
 
@@ -160,14 +173,19 @@ Record &SPSegment::lookup(TID tid) {
         bufferManager.unfixPage(bufferFrame, false);
         throw new std::invalid_argument("SlotID of TID not valid.");
     }
-
-    if(sp->isIndirection(tid.slotID)){
+    else if(sp->isRemoved(tid.slotID)){
+        printf("Lookup of removed TID (PageID: %lu, SlotID: %u)\n", tid.pageID, tid.slotID);
+        bufferManager.unfixPage(bufferFrame, false);
+        throw new std::invalid_argument("Lookup of removed TID.");
+    }
+    else if(sp->isIndirection(tid.slotID)){
         TID indirectionTID = sp->getIndirection(tid.slotID);
         Record* r = &lookup(indirectionTID);
         bufferManager.unfixPage(bufferFrame, false);
         return *r;
     }
     else {
+
         Record* r = &sp->getRecordFromSlotID(tid.slotID);
         bufferManager.unfixPage(bufferFrame, false);
         return *r;
