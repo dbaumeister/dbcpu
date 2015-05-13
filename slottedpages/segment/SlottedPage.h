@@ -11,8 +11,13 @@
 #include "../Record.h"
 #include "TID.h"
 
+const uint8_t BM_DEFAULT = ~(uint8_t)0;
+const uint8_t BM_REMOVED = ~(uint8_t)0 - (uint8_t)1;
+
+
 struct Slot {
-    uint32_t controlBits; //TODO
+    uint8_t controlBits;
+    uint32_t padding : 24;
     uint16_t offset;
     uint16_t length;
 };
@@ -23,6 +28,7 @@ struct SlottedPage {
         uint16_t slotCount = 0; //is also a pointer to the first free slot
         uint16_t dataStart = PAGESIZE - sizeof(SPHeader);
         uint16_t fragmentedSpace = 0;
+        uint16_t padding;
     } header;
     union {
         Slot slots[(PAGESIZE - sizeof(SPHeader)) / sizeof(Slot)];
@@ -67,11 +73,18 @@ struct SlottedPage {
     bool isIndirection(uint16_t slotID);
     bool isRemoved(uint16_t slotID);
     bool isValid(uint16_t slotID); //slotID < slotCount
+
     /*
      * Reorders data of not removed slots to get free space
      * Returns free space in bytes after defragmentation
      */
     uint16_t defrag();
+
+
+private:
+    void setControlbitsToRemoved(uint16_t slotID);
+    void setControlbitsToDefault(uint16_t slotID);
+
 };
 
 #endif //PROJECT_SLOTTEDPAGE_H

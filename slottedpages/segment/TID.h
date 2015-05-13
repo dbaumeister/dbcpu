@@ -10,7 +10,6 @@
 //8 byte TID
 struct TID {
     uint16_t slotID : 16;
-    //TODO bitmaske 11111111 == TID 10000000 == removed
     uint64_t pageID : 48;
 };
 

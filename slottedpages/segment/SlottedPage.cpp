@@ -14,13 +14,14 @@ uint16_t SlottedPage::insertNewSlot(char const* dataptr, uint16_t lenInBytes){
     newSlot.offset = header.dataStart;
     newSlot.length = lenInBytes;
 
-    //TODO controlbits
-
     slots[header.slotCount] = newSlot;
-    return header.slotCount++; //first return, then increase!!
+    setControlbitsToDefault(header.slotCount);
+    return header.slotCount++; //first return, then increase
 }
 
-//TODO
+/*
+ * Only call on a regular slot (no indirection, not removed!)
+ */
 bool SlottedPage::tryUpdate(uint16_t slotID, char const *dataptr, uint16_t lenInBytes) {
     Slot* s = &slots[slotID];
     //1. (length is the same) -> insert at the same position
@@ -42,12 +43,11 @@ bool SlottedPage::tryUpdate(uint16_t slotID, char const *dataptr, uint16_t lenIn
             s->offset = header.dataStart;
             s->length = lenInBytes;
 
-            //TODO controlbits
             return true;
         }
         //4. (length is greater than before && space after defrag) -> defrag and insert anywhere on page -> update length & offset
         else if(getFreeSpaceInBytesAfterDefrag() + s->length >= lenInBytes){
-            //TODO set controlbit of slot to removed -> its space can be used by defrag
+            setControlbitsToRemoved(slotID);
             defrag();
 
             header.dataStart -= lenInBytes;
@@ -55,11 +55,11 @@ bool SlottedPage::tryUpdate(uint16_t slotID, char const *dataptr, uint16_t lenIn
 
             s->offset = header.dataStart;
             s->length = lenInBytes;
-            //TODO controlbits
+
+            setControlbitsToDefault(slotID);
             return true;
         }
     }
-    //5. else return false
     return false;
 }
 
@@ -72,11 +72,11 @@ bool SlottedPage::tryUpdateSlotWithIndirection(uint16_t slotID, char const *data
         s->offset = header.dataStart;
         s->length = lenInBytes;
 
-        //TODO controlbits
+        setControlbitsToDefault(slotID);
         //here we have completely removed the TID, which was previously stored in this slot
         return true;
     }
-        //4. (length is greater than before && space after defrag) -> defrag and insert anywhere on page -> update length & offset
+    //4. (length is greater than before && space after defrag) -> defrag and insert anywhere on page -> update length & offset
     else if(getFreeSpaceInBytesAfterDefrag() >= lenInBytes){
         defrag();
 
@@ -85,7 +85,8 @@ bool SlottedPage::tryUpdateSlotWithIndirection(uint16_t slotID, char const *data
 
         s->offset = header.dataStart;
         s->length = lenInBytes;
-        //TODO controlbits
+
+        setControlbitsToDefault(slotID);
         //here we have completely removed the TID, which was previously stored in this slot
         return true;
     }
@@ -94,18 +95,18 @@ bool SlottedPage::tryUpdateSlotWithIndirection(uint16_t slotID, char const *data
 
 void SlottedPage::insertIndirection(uint16_t slotID, TID indirection) {
     memcpy(&slots[slotID], &indirection, sizeof(TID));
-    //TODO set control bits
 }
 
 void SlottedPage::remove(uint16_t slotID) {
-    //TODO only add fragmentedSpace when not removed already and no indirection
-    header.fragmentedSpace += slots[slotID].length;
-    //TODO controlbits removed
+    if(!isIndirection(slotID) && !isRemoved(slotID)) {
+        header.fragmentedSpace += slots[slotID].length;
+    }
+    setControlbitsToRemoved(slotID);
 }
 
 
 /*
- * Only call on non indirection
+ * Only call on non indirection and not removed
  */
 Record &SlottedPage::getRecordFromSlotID(uint16_t slotID){
     Slot s = slots[slotID];
@@ -138,18 +139,14 @@ bool SlottedPage::hasEnoughSpaceAfterDefrag(uint16_t lenInBytes){
 
 
 bool SlottedPage::isIndirection(uint16_t slotID) {
-    Slot s = slots[slotID];
-    return false; //TODO s.isTID == TRUE && !isRemoved(slotID);
+    return slots[slotID].controlBits != BM_DEFAULT && slots[slotID].controlBits != BM_REMOVED;
 }
 
 bool SlottedPage::isRemoved(uint16_t slotID) {
-    Slot s = slots[slotID];
-    //TODO controlbits removed
-    return  false;
+    return slots[slotID].controlBits == BM_REMOVED;
 }
 
 bool SlottedPage::isValid(uint16_t slotID) {
-    Slot s = slots[slotID];
     return slotID < header.slotCount;
 }
 
@@ -173,3 +170,10 @@ uint16_t SlottedPage::defrag(){
     return getFreeSpaceInBytes();
 }
 
+void SlottedPage::setControlbitsToRemoved(uint16_t slotID) {
+    slots[slotID].controlBits = BM_REMOVED;
+}
+
+void SlottedPage::setControlbitsToDefault(uint16_t slotID) {
+    slots[slotID].controlBits = BM_DEFAULT;
+}

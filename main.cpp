@@ -2,6 +2,7 @@
 #include <iostream>
 #include <stdint.h>
 #include <assert.h>
+#include <math.h>
 
 #include "buffer/BufferManager.h"
 #include "slottedpages/segment/SPSegment.h"
@@ -9,23 +10,33 @@
 void printArguments(int argc, const char* argv[]);
 void testSlottedPageInsertWithRandomInserts(SlottedPage& sp);
 void testSlottedPageRemove(SlottedPage& sp);
+void testSlottedPage();
+void testSPSegment();
 
 int main(int argc, const char* argv[])
 {
-    SlottedPage sp;
 
-    std::cout << "Size of Header: " << sizeof(sp.header) << std::endl;
+    std::cout << "Size of SlottedPage: " << sizeof(SlottedPage) << std::endl;
+    std::cout << "Size of Header: " << sizeof(SlottedPage::SPHeader) << std::endl;
     std::cout << "Size of Slot: " << sizeof(Slot) << std::endl;
     std::cout << "Size of TID: " << sizeof(TID) << std::endl;
 
-    //testSlottedPageInsertWithRandomInserts(sp);
-    //testSlottedPageRemove(sp);
-
-    //std::cout << "Free space after defrag: ";
-    //std::cout << sp.defrag() << " bytes." << std::endl;
+    testSlottedPage();
     return 0;
 }
 
+
+void testSPSegment(){
+
+}
+
+void testSlottedPage(){
+    SlottedPage sp;
+    testSlottedPageInsertWithRandomInserts(sp);
+    testSlottedPageRemove(sp);
+    testSlottedPageInsertWithRandomInserts(sp);
+    testSlottedPageRemove(sp);
+}
 
 void testSlottedPageRemove(SlottedPage& sp){
 
@@ -34,6 +45,8 @@ void testSlottedPageRemove(SlottedPage& sp){
         sp.remove(i);
         std::cout << "Fragmented space: " << sp.header.fragmentedSpace << " bytes." << std::endl;
     }
+    std::cout << "Free space after defrag: ";
+    std::cout << sp.defrag() << " bytes." << std::endl;
 }
 
 void testSlottedPageInsertWithRandomInserts(SlottedPage& sp){
@@ -52,7 +65,6 @@ void testSlottedPageInsertWithRandomInserts(SlottedPage& sp){
         std::cout << "Insert " << lenInBytes << " bytes." << std::endl;
         uint16_t slotID = sp.insertNewSlot(data1, lenInBytes);
         std::cout << "Got slotID: " << slotID << std::endl;
-        assert(slotID == i);
     }
 
     free(data1);
