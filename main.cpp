@@ -21,13 +21,48 @@ int main(int argc, const char* argv[])
     std::cout << "Size of Slot: " << sizeof(Slot) << std::endl;
     std::cout << "Size of TID: " << sizeof(TID) << std::endl;
 
-    testSlottedPage();
+    testSPSegment();
     return 0;
 }
 
 
 void testSPSegment(){
+    BufferManager* bm = new BufferManager(64);
+    uint16_t numSegments = 4;
+    SPSegment* spSegments[numSegments];
 
+    for(uint16_t i = 0; i <  numSegments; ++i){
+        spSegments[i] = new SPSegment(*bm, i+1);
+    }
+
+    std::vector<TID> tupleIDs;
+
+    for(int i = 0; i < 1024; ++i){
+
+        size_t len = i;
+        void* dataptr = malloc(i);
+        Record record(len, (const char*)dataptr);
+
+        if(i%7 == 0){
+            tupleIDs.push_back(spSegments[0]->insert(record));
+        }
+        else if(i%3 == 0) {
+            tupleIDs.push_back(spSegments[1]->insert(record));
+        }
+        else if(i%2 == 0) {
+            tupleIDs.push_back(spSegments[2]->insert(record));
+        }
+        else {
+            tupleIDs.push_back(spSegments[3]->insert(record));
+        }
+    }
+
+
+    for(uint16_t i = 0; i <  numSegments; ++i){
+        delete(spSegments[i]);
+    }
+    delete(bm);
+    //Randomly fill segments with more than
 }
 
 void testSlottedPage(){
