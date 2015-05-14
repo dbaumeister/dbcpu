@@ -2,6 +2,7 @@
 // Created by dbaumeister on 12.05.15.
 //
 
+#include <iostream>
 #include "SlottedPage.h"
 
 
@@ -42,6 +43,7 @@ bool SlottedPage::tryUpdate(uint16_t slotID, char const *dataptr, uint16_t lenIn
 
             s->offset = header.dataStart;
             s->length = lenInBytes;
+            setControlbitsToDefault(slotID);
 
             return true;
         }
@@ -90,7 +92,7 @@ bool SlottedPage::tryUpdateSlotWithIndirection(uint16_t slotID, char const *data
         //here we have completely removed the TID, which was previously stored in this slot
         return true;
     }
-    return false; //try to use this slot to insert data to the page
+    return false;
 }
 
 
@@ -101,7 +103,7 @@ bool SlottedPage::tryUpdateRemovedSlot(uint16_t slotID, char const *dataptr, uin
 }
 
 void SlottedPage::insertIndirection(uint16_t slotID, TID indirection) {
-    memcpy(&slots[slotID], &indirection, sizeof(TID));
+    memcpy(&slots[slotID], &indirection, sizeof(Slot));
 }
 
 void SlottedPage::remove(uint16_t slotID) {
@@ -146,7 +148,7 @@ uint16_t SlottedPage::getNumUnusedSlots() {
  * You can check if you got a valid slot in return via isValid(slotID)
  */
 uint16_t SlottedPage::getFirstUnusedSlot() {
-    int i = 0;
+    uint16_t i = (uint16_t)0;
     for(; i < header.slotCount; ++i){
         if(isRemoved(i)){
             return i;
@@ -162,7 +164,6 @@ bool SlottedPage::hasEnoughSpace(uint16_t lenInBytes){
 bool SlottedPage::hasEnoughSpaceAfterDefrag(uint16_t lenInBytes){
     return getFreeSpaceInBytes() + header.fragmentedSpace >= lenInBytes + sizeof(Slot);
 }
-
 
 bool SlottedPage::isIndirection(uint16_t slotID) {
     return slots[slotID].controlBits != BM_DEFAULT && slots[slotID].controlBits != BM_REMOVED;
@@ -182,7 +183,12 @@ bool SlottedPage::isValid(uint16_t slotID) {
  */
 uint16_t SlottedPage::defrag(){
     SlottedPage spWorkingCopy;
-    for(int i = 0; i < header.slotCount; ++i){
+    spWorkingCopy.header.slotCount = 0;
+    spWorkingCopy.header.dataStart = PAGESIZE - sizeof(SlottedPage::SPHeader);
+    spWorkingCopy.header.fragmentedSpace = 0;
+    spWorkingCopy.header.numUnusedSlots = 0;
+
+    for(uint16_t i = 0; i < header.slotCount; ++i){
         if(!isRemoved(i) && !isIndirection(i)){
             Slot* s = &slots[i];
             uint16_t wsID = spWorkingCopy.insertNewSlot(&data[s->offset], s->length);

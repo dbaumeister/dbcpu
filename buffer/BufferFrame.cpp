@@ -2,6 +2,7 @@
 // Created by dbaumeister on 21.04.15.
 //
 
+#include <iostream>
 #include "BufferFrame.h"
 
 void *BufferFrame::getData() {
@@ -46,7 +47,7 @@ void BufferFrame::lockWrite() {
 }
 
 void BufferFrame::unlockFrame() {
-    pthread_rwlock_unlock(&frame_rwlock);
+    pthread_rwlock_unlock(&frame_rwlock); //TODO error occurs here but its source must lie before
 }
 
 void BufferFrame::lockFrame(bool isExclusive) {

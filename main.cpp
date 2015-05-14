@@ -40,107 +40,16 @@ void testSPSegment(){
     size_t len = 120;
     void* dataptr = malloc(1024);
     Record record(len, (const char*)dataptr);
-    for(uint16_t i = 0; i < 1024; ++i){
+    Record recordBig(len + 2000, (const char*)dataptr);
+    Record recordSmall(len - 2, (const char*)dataptr);
 
-        if(i%7 == 0){
-            TID tid = spSegments[0]->insert(record);
-            tupleIDs[0].push_back(tid);
-            std::cout << "Counter: " << i << " - Segment: " << 1 << " - TID - page: " << tid.pageID << " - slot: " << tid.slotID << std::endl;
-        }
-        else if(i%3 == 0) {
-            TID tid = spSegments[1]->insert(record);
-            tupleIDs[1].push_back(tid);
-            std::cout << "Counter: " << i << " - Segment: " << 2 << " - TID - page: " << tid.pageID << " - slot: " << tid.slotID << std::endl;
-        }
-        else if(i%2 == 0) {
-            TID tid = spSegments[2]->insert(record);
-            tupleIDs[2].push_back(tid);
-            std::cout << "Counter: " << i << " - Segment: " << 3 << " - TID - page: " << tid.pageID << " - slot: " << tid.slotID << std::endl;
-        }
-        else {
-            TID tid = spSegments[3]->insert(record);
-            tupleIDs[3].push_back(tid);
-            std::cout << "Counter: " << i << " - Segment: " << 4 << " - TID - page: " << tid.pageID << " - slot: " << tid.slotID << std::endl;
-        }
-    }
-
-    for(int i = 0; i < numSegments; ++i){
-        for(TID tid : tupleIDs[i]){
-            std::cout << "Lookup Segment " << i << " - TID - page: " << tid.pageID << " - slot: " << tid.slotID << std::endl;
-            spSegments[i]->lookup(tid);
-        }
-    }
-
-    for(int i = 0; i < numSegments; ++i){
-        for(TID tid : tupleIDs[i]){
-            if(tid.pageID == 0) {
-                std::cout << "Remove page0 from Segment " << i << " - TID - page: " << tid.pageID << " - slot: " << tid.slotID << std::endl;
-                spSegments[i]->remove(tid);
-            }
-        }
-    }
-
-    for(int i = 0; i < numSegments; ++i){
-        for(TID tid : tupleIDs[i]){
-
-            if(tid.pageID > 0) {
-                std::cout << "Lookup Segment " << i << " - TID - page: " << tid.pageID << " - slot: " << tid.slotID <<
-                                                                                                         std::endl;
-                spSegments[i]->lookup(tid);
-            }
-        }
-    }
-
-    for(uint16_t i = 0; i < 1024; ++i){
-
-        if(i%7 == 0){
-            TID tid = spSegments[0]->insert(record);
-            tupleIDs[0].push_back(tid);
-            std::cout << "Counter: " << i << " - Segment: " << 1 << " - TID - page: " << tid.pageID << " - slot: " << tid.slotID << std::endl;
-        }
-        else if(i%3 == 0) {
-            TID tid = spSegments[1]->insert(record);
-            tupleIDs[1].push_back(tid);
-            std::cout << "Counter: " << i << " - Segment: " << 2 << " - TID - page: " << tid.pageID << " - slot: " << tid.slotID << std::endl;
-        }
-        else if(i%2 == 0) {
-            TID tid = spSegments[2]->insert(record);
-            tupleIDs[2].push_back(tid);
-            std::cout << "Counter: " << i << " - Segment: " << 3 << " - TID - page: " << tid.pageID << " - slot: " << tid.slotID << std::endl;
-        }
-        else {
-            TID tid = spSegments[3]->insert(record);
-            tupleIDs[3].push_back(tid);
-            std::cout << "Counter: " << i << " - Segment: " << 4 << " - TID - page: " << tid.pageID << " - slot: " << tid.slotID << std::endl;
-        }
-    }
+    TID tid = spSegments[0]->insert(record);
+    TID tid2 = spSegments[0]->insert(recordBig);
+    TID tid3 = spSegments[0]->insert(recordBig);
+    spSegments[0]->update(tid, recordBig);
+    spSegments[0]->remove(tid);
 
 
-    for(int i = 0; i < numSegments; ++i){
-        for(TID tid : tupleIDs[i]){
-            if(tid.pageID == 0) {
-                std::cout << "Remove page0 from Segment " << i << " - TID - page: " << tid.pageID << " - slot: " << tid.slotID << std::endl;
-                spSegments[i]->remove(tid);
-            }
-        }
-    }
-
-
-    Record record2(len-2, (const char*)dataptr);
-    for(int i = 0; i < numSegments; ++i){
-        for(TID tid : tupleIDs[i]){
-            std::cout << "Updated (lower lenght) Segment " << i << " - TID - page: " << tid.pageID << " - slot: " << tid.slotID << std::endl;
-            spSegments[i]->update(tid, record2);
-        }
-    }
-
-    Record record3(len+100, (const char*)dataptr);
-    for(int i = 0; i < numSegments; ++i){
-        for(TID tid : tupleIDs[i]){
-            std::cout << "Updated (higher length) Segment " << i << " - TID - page: " << tid.pageID << " - slot: " << tid.slotID << std::endl;
-            spSegments[i]->update(tid, record3);
-        }
-    }
 
     free(dataptr);
 
