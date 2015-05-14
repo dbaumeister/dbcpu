@@ -35,7 +35,6 @@ private:
     uint64_t segIDShifted;
 
     uint64_t createID(uint64_t pageID);
-    TID insertAndDoNotUseSpecificPage(Record &record, uint16_t leaveOutPage);
 };
 
 #endif //PROJECT_SPSEGMENT_H
