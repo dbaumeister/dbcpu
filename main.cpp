@@ -1,8 +1,5 @@
 #include <stdio.h>
 #include <iostream>
-#include <stdint.h>
-#include <assert.h>
-#include <math.h>
 
 #include "buffer/BufferManager.h"
 #include "slottedpages/segment/SPSegment.h"

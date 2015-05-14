@@ -47,7 +47,7 @@ void BufferFrame::lockWrite() {
 }
 
 void BufferFrame::unlockFrame() {
-    pthread_rwlock_unlock(&frame_rwlock); //TODO error occurs here but its source must lie before
+    pthread_rwlock_unlock(&frame_rwlock);
 }
 
 void BufferFrame::lockFrame(bool isExclusive) {

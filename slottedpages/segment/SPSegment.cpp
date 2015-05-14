@@ -69,6 +69,74 @@ TID SPSegment::insert(Record &record) {
     return tid;
 }
 
+TID SPSegment::insertAndDoNotUseSpecificPage(Record &record, uint16_t leaveOutPage) {
+    // find page with enough space
+    for(uint16_t i = 0; i < slottedPageCount; ++i){
+        if(i == leaveOutPage) continue;
+        BufferFrame* bufferFrame = bufferManager.fixPage(createID(i), true);
+        SlottedPage* sp = (SlottedPage*) bufferFrame->getData();
+
+        if(sp->getNumUnusedSlots() > 0) {
+            std::cout << "There are removed slots on page " << i << "-> try to insert in one of these." << std::endl;
+            uint16_t slotID = sp->getFirstUnusedSlot();
+            if(sp->isValid(slotID)){
+                if(sp->tryUpdateRemovedSlot(slotID, record.getData(), (uint16_t) record.getLen())){
+                    //inserting in slot was successful
+                    TID tid;
+                    tid.slotID = slotID;
+                    tid.pageID = i;
+                    bufferManager.unfixPage(bufferFrame, true);
+                    return tid;
+                } else std::cout << "Could not insert in removed slot - there is no space!" << std::endl;
+            } else std::cout << "Could not insert in remmoved slot - it was invalid" << std::endl;
+        }
+
+        if(sp->hasEnoughSpace((uint16_t) record.getLen())){
+            std::cout << "Insert because we have enough space on page " << i << "." << std::endl;
+
+            TID tid;
+            tid.slotID = sp->insertNewSlot(record.getData(), (uint16_t)record.getLen());
+            tid.pageID = i;
+            bufferManager.unfixPage(bufferFrame, true);
+
+            return tid;
+        }
+        else if(sp->hasEnoughSpaceAfterDefrag((uint16_t)record.getLen())){ //no free space found ->search again for fragmented
+            std::cout << "Insert because we have enough space after defrag on page " << i << "." << std::endl;
+
+            sp->defrag();
+            TID tid;
+            tid.slotID = sp->insertNewSlot(record.getData(), (uint16_t)record.getLen());
+            tid.pageID = i;
+            bufferManager.unfixPage(bufferFrame, true);
+            return tid;
+        }
+        bufferManager.unfixPage(bufferFrame, false);
+    }
+
+    std::cout << "Insert New Page in Segment" << std::endl;
+    // If not found -> create a new page (with BufferManager.fixPage)
+    BufferFrame* bufferFrame = bufferManager.fixPage(createID(slottedPageCount), true);
+    SlottedPage* sp = (SlottedPage*) bufferFrame->getData();
+
+    sp->header.fragmentedSpace = 0;
+    sp->header.numUnusedSlots = 0;
+    sp->header.slotCount = 0;
+    sp->header.dataStart = PAGESIZE - sizeof(SlottedPage::SPHeader);
+
+    TID tid;
+    tid.slotID = sp->insertNewSlot(record.getData(), (uint16_t)record.getLen());
+    tid.pageID = slottedPageCount;
+
+    ++slottedPageCount;
+    bufferManager.unfixPage(bufferFrame, true);
+
+    return tid;
+}
+
+
+
+
 bool SPSegment::remove(TID tid) {
 
     BufferFrame* bufferFrame = bufferManager.fixPage(createID(tid.pageID), true);
@@ -142,7 +210,7 @@ bool SPSegment::update(TID tid, Record &record) {
                 std::cout << "Could not fit update into indirection - remove indirection and insert update" << std::endl;
                 spIndir->remove(indirectionTID.slotID);
                 bufferManager.unfixPage(bufferFrameIndir, true);
-                indirectionTID = insert(record);
+                indirectionTID = insertAndDoNotUseSpecificPage(record, tid.pageID);
                 sp->insertIndirection(tid.slotID, indirectionTID);
                 bufferManager.unfixPage(bufferFrame, true);
                 return true;
@@ -158,7 +226,7 @@ bool SPSegment::update(TID tid, Record &record) {
         return true;
     } else {
         std::cout << "Update regular slot - fail - must insert indirection" << std::endl;
-        TID indirectionTID = insert(record);
+        TID indirectionTID = insertAndDoNotUseSpecificPage(record, tid.pageID);
 
         sp->remove(tid.slotID);
         sp->insertIndirection(tid.slotID, indirectionTID);
