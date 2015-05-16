@@ -12,7 +12,6 @@ TID SPSegment::insert(Record &record) {
         SlottedPage* sp = (SlottedPage*) bufferFrame->getData();
 
         if(sp->getNumUnusedSlots() > 0) {
-            std::cout << "There are removed slots on page " << i << "-> try to insert in one of these." << std::endl;
             uint16_t slotID = sp->getFirstUnusedSlot();
             if(sp->isValid(slotID)){
                 if(sp->tryUpdateRemovedSlot(slotID, record.getData(), (uint16_t) record.getLen())){
@@ -22,13 +21,11 @@ TID SPSegment::insert(Record &record) {
                     tid.pageID = i;
                     bufferManager.unfixPage(bufferFrame, true);
                     return tid;
-                } else std::cout << "Could not insert in removed slot - there is no space!" << std::endl;
-            } else std::cout << "Could not insert in remmoved slot - it was invalid" << std::endl;
+                }
+            }
         }
 
         if(sp->hasEnoughSpace((uint16_t) record.getLen())){
-            std::cout << "Insert because we have enough space on page " << i << "." << std::endl;
-
             TID tid;
             tid.slotID = sp->insertNewSlot(record.getData(), (uint16_t)record.getLen());
             tid.pageID = i;
@@ -37,8 +34,6 @@ TID SPSegment::insert(Record &record) {
             return tid;
         }
         else if(sp->hasEnoughSpaceAfterDefrag((uint16_t)record.getLen())){ //no free space found ->search again for fragmented
-            std::cout << "Insert because we have enough space after defrag on page " << i << "." << std::endl;
-
             sp->defrag();
             TID tid;
             tid.slotID = sp->insertNewSlot(record.getData(), (uint16_t)record.getLen());
@@ -49,7 +44,6 @@ TID SPSegment::insert(Record &record) {
         bufferManager.unfixPage(bufferFrame, false);
     }
 
-    std::cout << "Insert New Page in Segment" << std::endl;
     // If not found -> create a new page (with BufferManager.fixPage)
     BufferFrame* bufferFrame = bufferManager.fixPage(createID(slottedPageCount), true);
     SlottedPage* sp = (SlottedPage*) bufferFrame->getData();
@@ -83,12 +77,10 @@ bool SPSegment::remove(TID tid) {
     //check for indirection
     if(sp->isIndirection(tid.slotID)){
         //delete indirection
-        std::cout << "Remove points to indirection -> ";
         TID indirectionTID = sp->getIndirection(tid.slotID);
         return remove(indirectionTID);
     }
 
-    std::cout << "Remove slot" << std::endl;
     //remove whatever now lies in this slot
     sp->remove(tid.slotID);
     bufferManager.unfixPage(bufferFrame, true);
@@ -113,33 +105,24 @@ bool SPSegment::update(TID tid, Record &record) {
     }
 
     else if(sp->isIndirection(tid.slotID)){
-        std::cout << "Update Slot with Indirection in it" << std::endl;
         TID indirectionTID = sp->getIndirection(tid.slotID);
         bool success = sp->tryUpdateSlotWithIndirection(tid.slotID, record.getData(), (uint16_t) record.getLen());
         if(success){
-            std::cout << "Update Slot with Indirection - direct update - success" << std::endl;
-
-            if(remove(indirectionTID)){
-                std::cout << "Could remove indirectionTID" << std::endl;
-            } else std::cout << "Could NOT remove indirectionTID" << std::endl;
-
+            remove(indirectionTID);
             bufferManager.unfixPage(bufferFrame, true);
             return true;
         } else {
-            std::cout << "Update Slot with Indirection - fail - try to fit the update into the indirection" << std::endl;
             //try to fit the update into the indirection
             BufferFrame* bufferFrameIndir = bufferManager.fixPage(createID(indirectionTID.pageID), true);
             SlottedPage* spIndir = (SlottedPage*) bufferFrameIndir->getData();
 
             success = spIndir->tryUpdate(indirectionTID.slotID, record.getData(), (uint16_t)record.getLen());
             if(success) {
-                std::cout << "Success - could fit the update into the indirection" << std::endl;
                 bufferManager.unfixPage(bufferFrameIndir, true);
                 bufferManager.unfixPage(bufferFrame, false);
                 return true;
             }
             else {
-                std::cout << "Could not fit update into indirection - remove indirection and insert update" << std::endl;
                 spIndir->remove(indirectionTID.slotID);
                 bufferManager.unfixPage(bufferFrameIndir, true);
                 bufferManager.unfixPage(bufferFrame, false);
@@ -156,16 +139,13 @@ bool SPSegment::update(TID tid, Record &record) {
             }
         }
     }
-    std::cout << "Update regular slot" << std::endl;
+
     //no indirection and not removed -> update here
     bool success = sp->tryUpdate(tid.slotID,  record.getData(), (uint16_t) record.getLen());
     if(success){
-        std::cout << "Update regular slot - success" << std::endl;
         bufferManager.unfixPage(bufferFrame, true);
         return true;
     } else {
-        std::cout << "Update regular slot - fail - must insert indirection" << std::endl;
-
         bufferManager.unfixPage(bufferFrame, false);
         TID indirectionTID = insert(record);
 
