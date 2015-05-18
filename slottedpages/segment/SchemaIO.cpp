@@ -42,7 +42,7 @@ uint16_t SchemaIO::append(Schema::Relation relation, char* data, uint16_t offset
     memcpy(data + offset + len + sizeof(uint16_t), &numPrimKeys, sizeof(uint16_t));
     len += sizeof(uint16_t);
 
-
+    std::cout << "Num PrimKeys: " << numPrimKeys << std::endl;
     for(auto it : relation.primaryKey){
         memcpy(data + offset + len + sizeof(uint16_t), &it, sizeof(unsigned int));
         len += sizeof(unsigned int);
@@ -85,6 +85,9 @@ uint16_t SchemaIO::append(Schema::Relation::Attribute attribute, char *data, uin
 
     memcpy(data + offset + len, &name, nameLen);
     len += nameLen;
+
+
+    std::cout << "Attribute has length: " << len << std::endl;
     return len;
 }
 
@@ -126,13 +129,66 @@ Schema::Relation SchemaIO::getRelation(char *data, uint16_t offset, uint16_t len
 
     uint16_t loffset = offset;
 
-    //TODO relation params
+    uint16_t nameLen = 0;
+    memcpy(&nameLen, data + loffset, sizeof(uint16_t));
+    loffset += (uint16_t) sizeof(uint16_t);
+
+    char cname[nameLen];
+    memcpy(&cname[0], data + loffset, nameLen);
+    loffset += nameLen;
+
     std::string name;
+    //TODO char to string
 
     Schema::Relation relation(name);
     relation.attributes = std::vector<Schema::Relation::Attribute>();
+    relation.primaryKey = std::vector<unsigned int>();
+
+    uint16_t numKeys = 0;
+    memcpy(&numKeys, data + loffset, sizeof(uint16_t));
+    loffset += (uint16_t) sizeof(uint16_t);
+
+    std::cout << "Num Keys: " << numKeys << std::endl;
+    for(int i = 0; i < numKeys; ++i){
+        unsigned int key = 0;
+        memcpy(&key, data + loffset, sizeof(unsigned int));
+        relation.primaryKey.push_back(key);
+        loffset += (uint16_t) sizeof(unsigned int);
+    }
+
+    while(loffset < len + offset){
+
+        // Read attributes until we reached our boundaries
+        Schema::Relation::Attribute attribute;
+
+        memcpy(&attribute.len, data + loffset, sizeof(unsigned int)); //read length of next relation into rlen
+        loffset += (uint16_t) sizeof(unsigned int);
+
+        memcpy(&attribute.notNull, data + loffset, sizeof(bool));
+        loffset += (uint16_t) sizeof(bool);
+
+        uint16_t type = 0;
+        memcpy(&type, data + loffset, sizeof(uint16_t));
+        loffset += (uint16_t) sizeof(uint16_t);
+
+        if(type == 0) {
+            attribute.type = Types::Tag::Integer;
+        } else attribute.type = Types::Tag::Char;
+
+        uint16_t attrNameLen = 0;
+        memcpy(&attrNameLen, data + loffset, sizeof(uint16_t));
+        loffset += (uint16_t) sizeof(uint16_t);
+
+        char attrName[attrNameLen];
+        memcpy(&attrName[0], data + loffset, attrNameLen);
+        loffset += attrNameLen;
+
+        //TODO char to string & set attribute
 
 
+        relation.attributes.push_back(attribute);
+    }
+    assert(loffset == len + offset);
     return relation;
 
 }
