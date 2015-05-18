@@ -11,7 +11,7 @@
 #include <memory>
 #include <fstream>
 #include <sstream>
-#include "Schema.h"
+#include "segment/Schema.h"
 
 class ParserError : std::exception {
    std::string msg;

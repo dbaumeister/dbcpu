@@ -5,14 +5,28 @@
 #include <cassert>
 #include <string.h>
 
-#include "DBMS.hpp" // include your stuff here
-#include "Record.hpp"
+#include "../slottedpages/segment/SPSegment.h" // include your stuff here
+#include "../slottedpages/Record.h"
 
 using namespace std;
 
-// todo: adapt to your implementation
+#define CTID uint64_t
+
+CTID toCTID(TID tid){
+    CTID ctid;
+    memcpy(&ctid, &tid, sizeof(TID));
+    return ctid;
+}
+
+TID toTID(CTID ctid){
+    TID tid;
+    memcpy(&tid, &ctid, sizeof(TID));
+    //std::cout << "page: " << tid.pageID << " - slot: " << tid.slotID << std::endl;
+    return tid;
+}
+
 uint64_t extractPage(TID tid) {
-   return tid >> 16;
+   return tid.pageID;
 }
 
 const unsigned initialSize = 100; // in (slotted) pages
@@ -41,22 +55,21 @@ class Random64 {
 
 int main(int argc, char** argv) {
    // Check arguments
-   if (argc != 2) {
-      cerr << "usage: " << argv[0] << " <pageSize>" << endl;
-      return -1;
+   if (argc != 1) {
+      cerr << "All arguments are ignored" << endl;
    }
-   const unsigned pageSize = atoi(argv[1]);
+   const unsigned pageSize = PAGESIZE;
 
    // Bookkeeping
-   unordered_map<TID, unsigned> values; // TID -> testData entry
+   unordered_map<CTID, unsigned> values; // CustomTID -> testData entry
    unordered_map<unsigned, unsigned> usage; // pageID -> bytes used within this page
 
    // Setting everything
    BufferManager bm(100);
-   // TODO ...
-   SPSegment& sp = 
+   SPSegment& sp = *new SPSegment(bm, 1);
    Random64 rnd;
 
+    int countBigInserts = 0;
    // Insert some records
    for (unsigned i=0; i<maxInserts; ++i) {
       // Select string/record to insert
@@ -66,6 +79,7 @@ int main(int argc, char** argv) {
       // Check that there is space available for 's'
       bool full = true;
       for (unsigned p=0; p<initialSize; ++p) {
+          //TODO: there is the actual check for s.size() missing, isn't it?
          if (usage[p] < loadFactor*pageSize) {
             full = false;
             break;
@@ -75,11 +89,20 @@ int main(int argc, char** argv) {
          break;
 
       // Insert record
-      TID tid = sp.insert(Record(s.size(), s.c_str()));
-      assert(values.find(tid)==values.end()); // TIDs should not be overwritten
+      Record record = Record(s.size(), s.c_str());
+       CTID tid = toCTID(sp.insert(record));
+
+       std::cout << "Insert step " << i << std::endl;
+       if(s.size() > PAGESIZE / 2) std::cout << countBigInserts++ << ". " << s.size() << std::endl;
+       if(toTID(tid).pageID >= initialSize) std::cout << "On page: " << toTID(tid).pageID << std::endl;
+
+       //std::cout << "ctid: " << tid << std::endl;
+      assert(values.find(tid)==values.end()); // CustomTIDs should not be overwritten
       values[tid]=r;
-      unsigned pageId = extractPage(tid); // extract the pageId from the TID
-      assert(pageId < initialSize); // pageId should be within [0, initialSize)
+      unsigned pageId = extractPage(toTID(tid)); // extract the pageId from the CustomTID
+       //TODO: I don't see how this assert would be helpful, if you insert more than initialSize data chunks of more than
+       //TODO cont: PAGESIZE/2 bytes each
+      //assert(pageId < initialSize); // pageId should be within [0, initialSize)
       usage[pageId]+=s.size();
    }
 
@@ -89,18 +112,18 @@ int main(int argc, char** argv) {
       bool del = rnd.next()%10 == 0;
 
       // Select victim
-      TID tid = values.begin()->first;
-      unsigned pageId = extractPage(tid);
+       CTID tid = values.begin()->first;
+      unsigned pageId = extractPage(toTID(tid));
       const std::string& value = testData[(values.begin()->second)%testData.size()];
       unsigned len = value.size();
 
       // Lookup
-      Record rec = sp.lookup(tid);
+      Record rec = std::move(sp.lookup(toTID(tid)));
       assert(rec.getLen() == len);
       assert(memcmp(rec.getData(), value.c_str(), len)==0);
 
       if (del) { // do delete
-         assert(sp.remove(tid));
+         assert(sp.remove(toTID(tid)));
          values.erase(tid);
          usage[pageId]-=len;
       }
@@ -109,26 +132,27 @@ int main(int argc, char** argv) {
    // Update some values ('usage' counter invalid from here on)
    for (unsigned i=0; i<maxUpdates; ++i) {
       // Select victim
-      TID tid = values.begin()->first;
+       CTID tid = values.begin()->first;
 
       // Select new string/record
       uint64_t r = rnd.next()%testData.size();
       const string s = testData[r];
 
       // Replace old with new value
-      sp.update(tid, Record(s.size(), s.c_str()));
+      Record record = Record(s.size(), s.c_str());
+      sp.update(toTID(tid), record);
       values[tid]=r;
    }
 
    // Lookups
    for (auto p : values) {
-      TID tid = p.first;
+       CTID tid = p.first;
       const std::string& value = testData[p.second];
       unsigned len = value.size();
-      Record rec = sp.lookup(tid);
+      Record rec = std::move(sp.lookup(toTID(tid)));
       assert(rec.getLen() == len);
       assert(memcmp(rec.getData(), value.c_str(), len)==0);
    }
-
+    std::cout << "Test  finished." << std::endl;
    return 0;
 }

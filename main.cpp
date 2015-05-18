@@ -13,12 +13,6 @@ void testSPSegment();
 int main(int argc, const char* argv[])
 {
 
-    std::cout << "Size of SlottedPage: " << sizeof(SlottedPage) << std::endl;
-    std::cout << "Size of Header: " << sizeof(SlottedPage::SPHeader) << std::endl;
-    std::cout << "Size of Slot: " << sizeof(Slot) << std::endl;
-    std::cout << "Size of TID: " << sizeof(TID) << std::endl;
-
-    testSPSegment();
     return 0;
 }
 
@@ -41,12 +35,12 @@ void testSPSegment(){
     Record recordSmall(len - 2, (const char*)dataptr);
 
     TID tid = spSegments[0]->insert(record);
-    TID tid2 = spSegments[0]->insert(recordBig);
-    TID tid3 = spSegments[0]->insert(recordBig);
+    spSegments[0]->insert(recordBig);
+    spSegments[0]->insert(recordBig);
+    spSegments[0]->update(tid, record);
     spSegments[0]->update(tid, recordBig);
+    spSegments[0]->update(tid, recordSmall);
     spSegments[0]->remove(tid);
-
-
 
     free(dataptr);
 
@@ -54,7 +48,6 @@ void testSPSegment(){
         delete(spSegments[i]);
     }
     delete(bm);
-    //Randomly fill segments with more than
 }
 
 void testSlottedPage(){
