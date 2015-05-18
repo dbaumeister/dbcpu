@@ -38,6 +38,11 @@ uint16_t SchemaIO::append(Schema::Relation relation, char* data, uint16_t offset
     memcpy(data + offset + len + sizeof(uint16_t), name, nameLen);
     len += nameLen;
 
+    uint16_t numPrimKeys = (uint16_t) relation.primaryKey.size();
+    memcpy(data + offset + len + sizeof(uint16_t), &numPrimKeys, sizeof(uint16_t));
+    len += sizeof(uint16_t);
+
+
     for(auto it : relation.primaryKey){
         memcpy(data + offset + len + sizeof(uint16_t), &it, sizeof(unsigned int));
         len += sizeof(unsigned int);
@@ -58,28 +63,27 @@ uint16_t SchemaIO::append(Schema::Relation relation, char* data, uint16_t offset
 uint16_t SchemaIO::append(Schema::Relation::Attribute attribute, char *data, uint16_t offset) {
     uint16_t len = 0;
 
-    memcpy(data, &attribute.len, sizeof(unsigned int));
+    memcpy(data + offset, &attribute.len, sizeof(unsigned int));
     len += (uint16_t)sizeof(unsigned int);
 
-    memcpy(data + len, &attribute.notNull, sizeof(bool));
+    memcpy(data + offset + len, &attribute.notNull, sizeof(bool));
     len += (uint16_t)sizeof(bool);
-
 
     //save type as integer
     uint16_t type = 0; //Integer
     if(attribute.type == Types::Tag::Char){
         type = 1;
     }
-    memcpy(data + len, &type, sizeof(uint16_t));
+    memcpy(data + offset + len, &type, sizeof(uint16_t));
     len += (uint16_t) sizeof(uint16_t);
 
     uint16_t nameLen = (uint16_t) attribute.name.size();
     const char* name = attribute.name.c_str();
 
-    memcpy(data + len, &nameLen, sizeof(uint16_t));
+    memcpy(data + offset + len, &nameLen, sizeof(uint16_t));
     len += (uint16_t)sizeof(uint16_t);
 
-    memcpy(data + len, &name, nameLen);
+    memcpy(data + offset + len, &name, nameLen);
     len += nameLen;
     return len;
 }
@@ -99,8 +103,6 @@ Schema SchemaIO::load() {
 }
 
 Schema SchemaIO::getSchema(char *data, uint16_t offset, uint16_t len) {
-
-
     uint16_t loffset = offset;
 
     Schema schema;
@@ -116,7 +118,6 @@ Schema SchemaIO::getSchema(char *data, uint16_t offset, uint16_t len) {
         schema.relations.push_back(getRelation(data, loffset, rlen));
         loffset += rlen;
     }
-    std::cout << "loffset: " << loffset << " len+offset: " << len + offset << std::endl;
     assert(loffset == len + offset);
     return schema;
 }
