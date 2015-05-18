@@ -42,7 +42,6 @@ uint16_t SchemaIO::append(Schema::Relation relation, char* data, uint16_t offset
     memcpy(data + offset + len + sizeof(uint16_t), &numPrimKeys, sizeof(uint16_t));
     len += sizeof(uint16_t);
 
-    std::cout << "Num PrimKeys: " << numPrimKeys << std::endl;
     for(auto it : relation.primaryKey){
         memcpy(data + offset + len + sizeof(uint16_t), &it, sizeof(unsigned int));
         len += sizeof(unsigned int);
@@ -56,7 +55,6 @@ uint16_t SchemaIO::append(Schema::Relation relation, char* data, uint16_t offset
     }
     memcpy(data + offset, &len, sizeof(uint16_t));
 
-    std::cout << "Relation has length: " << len << std::endl;
     return len + (uint16_t)sizeof(uint16_t);
 }
 
@@ -83,11 +81,9 @@ uint16_t SchemaIO::append(Schema::Relation::Attribute attribute, char *data, uin
     memcpy(data + offset + len, &nameLen, sizeof(uint16_t));
     len += (uint16_t)sizeof(uint16_t);
 
-    memcpy(data + offset + len, &name, nameLen);
+    memcpy(data + offset + len, name, nameLen);
     len += nameLen;
 
-
-    std::cout << "Attribute has length: " << len << std::endl;
     return len;
 }
 
@@ -115,7 +111,6 @@ Schema SchemaIO::getSchema(char *data, uint16_t offset, uint16_t len) {
 
         uint16_t rlen = 0;
         memcpy(&rlen, data + loffset, sizeof(uint16_t)); //read length of next relation into rlen
-        std::cout << "rlen: " << rlen << std::endl;
         loffset += sizeof(uint16_t);
 
         schema.relations.push_back(getRelation(data, loffset, rlen));
@@ -133,12 +128,12 @@ Schema::Relation SchemaIO::getRelation(char *data, uint16_t offset, uint16_t len
     memcpy(&nameLen, data + loffset, sizeof(uint16_t));
     loffset += (uint16_t) sizeof(uint16_t);
 
-    char cname[nameLen];
+    char cname[nameLen + 1];
+    cname[nameLen] = '\0';
     memcpy(&cname[0], data + loffset, nameLen);
     loffset += nameLen;
 
-    std::string name;
-    //TODO char to string
+    std::string name = cname;
 
     Schema::Relation relation(name);
     relation.attributes = std::vector<Schema::Relation::Attribute>();
@@ -148,7 +143,6 @@ Schema::Relation SchemaIO::getRelation(char *data, uint16_t offset, uint16_t len
     memcpy(&numKeys, data + loffset, sizeof(uint16_t));
     loffset += (uint16_t) sizeof(uint16_t);
 
-    std::cout << "Num Keys: " << numKeys << std::endl;
     for(int i = 0; i < numKeys; ++i){
         unsigned int key = 0;
         memcpy(&key, data + loffset, sizeof(unsigned int));
@@ -179,12 +173,13 @@ Schema::Relation SchemaIO::getRelation(char *data, uint16_t offset, uint16_t len
         memcpy(&attrNameLen, data + loffset, sizeof(uint16_t));
         loffset += (uint16_t) sizeof(uint16_t);
 
-        char attrName[attrNameLen];
+        char attrName[attrNameLen + 1];
+        attrName[attrNameLen] = '\0';
         memcpy(&attrName[0], data + loffset, attrNameLen);
         loffset += attrNameLen;
 
-        //TODO char to string & set attribute
-
+        std::string attrNameString = attrName;
+        attribute.name = attrNameString;
 
         relation.attributes.push_back(attribute);
     }

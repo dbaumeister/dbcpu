@@ -24,7 +24,6 @@ private:
 
     Schema getSchema(char* data, uint16_t offset, uint16_t len);
     Schema::Relation getRelation(char* data, uint16_t offset, uint16_t len);
-    Schema::Relation::Attribute getAttribute(char* data, uint16_t offset, uint16_t len);
 
 };
 

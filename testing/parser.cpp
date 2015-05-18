@@ -32,6 +32,9 @@ int main(int argc, char *argv[]) {
     schemaIO.save(schema1);
     Schema schema2 = schemaIO.load();
 
+    std::cout << schema1.toString() << std::endl;
+    std::cout << schema2.toString() << std::endl;
+
     if(testEqual(schema1, schema2)){
         std::cout << "Schemas are identical." << std::endl;
     } else std::cout << "Schemas differ!" << std::endl;
