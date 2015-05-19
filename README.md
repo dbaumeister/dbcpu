@@ -1,18 +1,15 @@
-# dbcpu
+dbcpu
+
 by Dominik Baumeister (MatrNr. 03628973)
 
-Start the program with the arguments <pagesOnDisk> <pagesInRAM> <threads> to trigger buffertest.
+# Assignment 3
 
-I tested with:
+When currently built a testrun for the Schema I/O runs.
 
-8000 500 8
-8000 500 4
-8000 500 2
-8000 500 1
+-> add a path to a test.sql to the arguments and the test will parse the schema, save it using the buffermanager and load it again
+
+-> additionally the string output is tested for equality to verify the correct saving/loading
 
 
-10000 1000 4
-10000 1000 1
 
-I let it run enough times each to nullify the chance of race conditions.
-However at the moment fixPage is under a global lock -> not really the best option performance wise.
+The program can also be built to run the slotted page tests provided for Assignment 3
