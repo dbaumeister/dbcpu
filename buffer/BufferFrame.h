@@ -5,6 +5,7 @@
 #ifndef PROJECT_BUFFERFRAME_H
 #define PROJECT_BUFFERFRAME_H
 
+#include <atomic>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -55,7 +56,7 @@ private:
     uint64_t id;
 
     bool dirty;
-    unsigned int user_count;
+    std::atomic<unsigned int> user_count;
 
     //Latch
     pthread_rwlock_t frame_rwlock;
