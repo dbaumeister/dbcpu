@@ -1,15 +1,10 @@
 #include <string>
-#include <cstdint>
 #include <cassert>
 #include <vector>
 #include <sstream>
-#include <stdlib.h>
 #include <string.h>
 
 #include "../btree/BTree.h"
-#include "../buffer/BufferManager.h"
-#include "../slottedpages/segment/TID.h"
-#include "../slottedpages/segment/SPSegment.h"
 
 /* Comparator functor for uint64_t*/
 struct MyCustomUInt64Cmp {
@@ -85,8 +80,8 @@ void test(uint64_t n) {
     // Set up stuff, you probably have to change something here to match to your interfaces
     BufferManager bm(64);
     // ...
-    SPSegment segment(bm, 3);
-    BTree<T, CMP> bTree(segment);
+    uint64_t segment = 3;
+    BTree<T, CMP> bTree(bm, segment);
 
     // Insert values
     for (uint64_t i = 0; i < n; ++i){
