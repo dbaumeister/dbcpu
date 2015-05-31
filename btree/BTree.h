@@ -105,6 +105,17 @@ class BTree {
             return (PAGESIZE - sizeof(BTreeNode) - sizeof(uint64_t)) / sizeof(KeyTID) - 1 <= BTreeNode::numEntries;
         }
 
+        bool erase(KeyT key) {
+            for(uint16_t i = 0; i < BTreeNode::numEntries; ++i){
+                if(memcmp(&key, &entries[i].key, sizeof(KeyT)) == 0){
+                    memmove(&entries[i], &entries[i+1], (BTreeNode::numEntries - i - 1) * sizeof(KeyTID));
+                    --BTreeNode::numEntries;
+                    return true;
+                }
+            }
+            return false;
+        }
+
         void insert(KeyT key, TID tid) {
             CompT comp;
             uint16_t i = 0;
@@ -291,7 +302,33 @@ void BTree<KeyT, CompT>::insert(KeyT key, TID &tid) {
 
 template<class KeyT, class CompT>
 bool BTree<KeyT, CompT>::erase(KeyT key) {
-    return false;
+    BufferFrame *bufferFrameCurrent = bufferManager.fixPage(createID(rootPageID), true);
+    BTreeNode *current = (BTreeNode *) bufferFrameCurrent->getData();
+
+    for(;;){
+        if (current->isLeaf) break;
+
+        BTreeInner *currentInner = (BTreeInner *)current;
+        uint64_t childPageID = currentInner->getChildID(key);
+
+        BufferFrame *bufferFrameChild = bufferManager.fixPage(createID(childPageID), true);
+        BTreeNode *child = (BTreeNode *) bufferFrameChild->getData();
+
+        // swap current and child
+        std::swap(bufferFrameChild, bufferFrameCurrent);
+        std::swap(child, current);
+
+        // unfix child bufferframe (the old current)
+        bufferManager.unfixPage(bufferFrameChild, false);
+
+    }
+
+    BTreeLeaf *leaf = (BTreeLeaf *)current;
+    bool erased = leaf->erase(key);
+    if(erased) --_size;
+
+    bufferManager.unfixPage(bufferFrameCurrent, erased);
+    return erased;
 }
 
 template<class KeyT, class CompT>
