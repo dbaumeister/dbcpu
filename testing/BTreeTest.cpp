@@ -86,7 +86,6 @@ void test(uint64_t n) {
     // Insert values
     for (uint64_t i = 0; i < n; ++i){
         TID tid = toTID(i * i);
-        printf("Insert key: %lu\n", i);
         bTree.insert(getKey<T>(i), tid);
     }
     assert(bTree.size() == n);
@@ -95,7 +94,6 @@ void test(uint64_t n) {
     // Check if they can be retrieved
     for (uint64_t i = 0; i < n; ++i) {
         TID tid;
-        printf("Lookup key: %lu\n", i);
         assert(bTree.lookup(getKey<T>(i), tid));
         assert(toUint64(tid) == i * i);
     }
