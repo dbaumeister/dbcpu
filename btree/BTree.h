@@ -3,12 +3,6 @@
 //
 
 
-/*
- * Notes:
- * each Node (Inner & Leaf) gets its own pageID -> it can be accessed using the bufferManager
- *
- */
-
 #ifndef PROJECT_BTREE_H
 #define PROJECT_BTREE_H
 
@@ -17,6 +11,8 @@
 #include <pthread.h>
 #include "../slottedpages/segment/TID.h"
 #include "../slottedpages/segment/SPSegment.h"
+
+const uint64_t NO_NEIGHBOR = ~(uint64_t) 0;
 
 
 template<class KeyT, class CompT>
@@ -34,10 +30,10 @@ class BTree {
             uint64_t pageID;
         };
 
-        KeyPage *children[(PAGESIZE - sizeof(BTreeNode)) / sizeof(KeyPage)];
+        KeyPage children[(PAGESIZE - sizeof(BTreeNode)) / sizeof(KeyPage)];
 
         uint64_t getLastPageID() {
-            return children[BTreeNode::numEntries - 1]->pageID;
+            return children[BTreeNode::numEntries - 1].pageID;
         }
 
         bool isFull() {
@@ -45,40 +41,54 @@ class BTree {
         }
 
         void insert(KeyT key, uint64_t &pageID) {
-            //TODO:
-            // 1. search for correct entry
-            // 2. memcpy everything behind one entry backwards
-            // 3. insert KeyPage struct
+            CompT comp;
+            uint16_t i = 0;
+            for(; i < BTreeNode::numEntries; ++i){
+                if(comp(key, children[i].key)) break;
+            }
+
+            memcpy(&children[i+1], &children[i], (BTreeNode::numEntries - i) * sizeof(KeyPage));
+            KeyPage keyPage;
+            keyPage.key = key;
+            keyPage.pageID = pageID;
+            children[i] = keyPage;
+
+            ++BTreeNode::numEntries;
         }
 
         /*
          * This method should only be called after a split -> the parent node has to be updated
          */
         bool updatePageID(KeyT key, uint64_t newPageID){
-            //TODO:
-            // 1. search for entry where key is the same (memcmp)
-            // 2. update its pageID
-            // 3. if the key is not found, return false (should never happen -> just for debug)
+            for(uint16_t i = 0; i < BTreeNode::numEntries; ++i){
+                if(memcmp(&key, &(children[i].key), sizeof(KeyT))){
+                    children[i].pageID = newPageID;
+                    return true;
+                }
+            }
             return false;
         }
 
         void split(BTreeInner* right) {
-            //TODO:
-            // 1. take right half of numEntries
-            // 2. copy them to right
-            // 3. change header infos of me and right
+            uint16_t numEntriesLeft = BTreeNode::numEntries / (uint16_t)2;
+            right->BTreeNode::numEntries = BTreeNode::numEntries - numEntriesLeft;
+
+            memcpy(&right->children[0], &children[numEntriesLeft], right->BTreeNode::numEntries * sizeof(KeyPage));
+            BTreeNode::numEntries = numEntriesLeft;
         }
 
         uint64_t getChildID(KeyT key) {
-            //TODO:
-            // 1. check for the key
-            // 2. return pageID
+            CompT c;
+            for(uint16_t i = 0; i < BTreeNode::numEntries; ++i){
+                if(c(key, children[i].key)){
+                    return children[i].pageID;
+                }
+            }
             return 0;
         }
 
         KeyT getHighestKey(){
-            //TODO
-
+            return children[BTreeNode::numEntries-1].key;
         }
     };
 
@@ -88,30 +98,52 @@ class BTree {
             KeyT key;
             TID tid;
         };
-
-        KeyTID *children[(PAGESIZE - sizeof(BTreeNode)) / sizeof(KeyTID)];
+        uint64_t rightNeighbor = NO_NEIGHBOR;
+        KeyTID entries[(PAGESIZE - sizeof(BTreeNode) - sizeof(uint64_t)) / sizeof(KeyTID)];
 
         bool isFull() {
-            return (PAGESIZE - sizeof(BTreeNode)) / sizeof(KeyTID) - 1 <= BTreeNode::numEntries;
+            return (PAGESIZE - sizeof(BTreeNode) - sizeof(uint64_t)) / sizeof(KeyTID) - 1 <= BTreeNode::numEntries;
         }
 
         void insert(KeyT key, TID &tid) {
-            //TODO:
-            // 1. search for correct entry
-            // 2. memcpy everything behind one entry backwards
-            // 3. insert KeyPage struct
+            CompT comp;
+            uint16_t i = 0;
+            for(; i < BTreeNode::numEntries; ++i){
+                if(comp(key, entries[i].key)) break;
+            }
+
+            memcpy(&entries[i+1], &entries[i], (BTreeNode::numEntries - i) * sizeof(KeyTID));
+            KeyTID keyTID;
+            keyTID.key = key;
+            keyTID.tid = tid;
+            entries[i] = keyTID;
+
+            ++BTreeNode::numEntries;
         }
 
-        void split(BTreeLeaf* right) {
-            //TODO:
-            // 1. take right half of numEntries
-            // 2. copy them to right
-            // 3. change header infos of me and right
+        void split(BTreeLeaf* right, uint64_t rightID) {
+            right->rightNeighbor = rightNeighbor; //Bplus-Tree
+            rightNeighbor = rightID;
+
+            uint16_t numEntriesLeft = BTreeNode::numEntries / (uint16_t)2;
+            right->BTreeNode::numEntries = BTreeNode::numEntries - numEntriesLeft;
+
+            memcpy(&right->entries[0], &entries[numEntriesLeft], right->BTreeNode::numEntries * sizeof(KeyTID));
+            BTreeNode::numEntries = numEntriesLeft;
         }
 
+        bool lookup(KeyT key, TID& tid){
+            for(uint16_t i = 0; i < BTreeNode::numEntries; ++i){
+                if(memcmp(&key, &(entries[i].key), sizeof(KeyT))){
+                    tid = entries[i].tid;
+                    return true;
+                }
+            }
+            return false;
+        }
 
         KeyT getHighestKey(){
-            //TODO
+            return entries[BTreeNode::numEntries - 1].key;
         }
     };
 
@@ -154,17 +186,16 @@ private:
 
     //TODO vererbung lösen lassen
     bool isFull(BTreeNode *node) {
-        if (node->isLeaf) return (reinterpret_cast<BTreeLeaf*>(node)->isFull());
-        else return (reinterpret_cast<BTreeInner*>(node)->isFull());
+        if (node->isLeaf) return reinterpret_cast<BTreeLeaf*>(node)->isFull();
+        else return reinterpret_cast<BTreeInner*>(node)->isFull();
     }
 
 
     //TODO vererbung lösen lassen
-    void split(BTreeNode *node, BTreeNode* right) {
+    void split(BTreeNode *node, BTreeNode* right, uint64_t rightID) {
         right->isLeaf = node->isLeaf;
-        if (node->isLeaf) reinterpret_cast<BTreeLeaf *>(node)->split(reinterpret_cast<BTreeLeaf*>(right));
+        if (node->isLeaf) reinterpret_cast<BTreeLeaf *>(node)->split(reinterpret_cast<BTreeLeaf*>(right), rightID);
         else reinterpret_cast<BTreeInner *> (node)->split(reinterpret_cast<BTreeInner *>(right));
-
     }
 
 
@@ -188,7 +219,7 @@ void BTree<KeyT, CompT>::insert(KeyT key, TID &tid) {
         BufferFrame* bufferFrameRight = bufferManager.fixPage(createID(rightPageID), true);
         BTreeNode *right = (BTreeNode*) bufferFrameRight->getData();
 
-        split(current, right);
+        split(current, right, rightPageID);
 
         // 1. fix new page
         BufferFrame *bufferFrameNewRoot = bufferManager.fixPage(createID(numPages), true);
@@ -204,7 +235,6 @@ void BTree<KeyT, CompT>::insert(KeyT key, TID &tid) {
         // 3. set new page as root
         rootPageID = numPages;
         numPages++;
-
 
         std::swap(bufferFrameNewRoot, bufferFrameCurrent);
         current = (BTreeNode*) newRoot;
@@ -231,7 +261,7 @@ void BTree<KeyT, CompT>::insert(KeyT key, TID &tid) {
             BTreeNode *right = (BTreeNode*) bufferFrameRight->getData();
 
 
-            split(child, right);
+            split(child, right, rightPageID);
 
             // insert split key/pageid in current
             KeyT leftKey = getHighestKey(child);
@@ -266,6 +296,34 @@ bool BTree<KeyT, CompT>::erase(KeyT key) {
 
 template<class KeyT, class CompT>
 bool BTree<KeyT, CompT>::lookup(KeyT key, TID &tid) {
+    BufferFrame *bufferFrameCurrent = bufferManager.fixPage(createID(rootPageID), false);
+    BTreeNode *current = (BTreeNode *) bufferFrameCurrent->getData();
+
+    for(;;){
+        if (current->isLeaf) break;
+
+        BTreeInner *currentInner = reinterpret_cast<BTreeInner *>(current);
+        uint64_t childPageID = currentInner->getChildID(key);
+
+        BufferFrame *bufferFrameChild = bufferManager.fixPage(createID(childPageID), true);
+        BTreeNode *child = (BTreeNode *) bufferFrameChild->getData();
+
+        // swap current and child
+        std::swap(bufferFrameChild, bufferFrameCurrent);
+        std::swap(child, current);
+
+        // unfix child bufferframe (the old current)
+        bufferManager.unfixPage(bufferFrameChild, false);
+
+    }
+
+    BTreeLeaf *leaf = reinterpret_cast<BTreeLeaf *>(current);
+    if(leaf->lookup(key, tid)){
+        bufferManager.unfixPage(bufferFrameCurrent, false);
+        return true;
+    }
+
+    bufferManager.unfixPage(bufferFrameCurrent, false);
     return false;
 }
 
