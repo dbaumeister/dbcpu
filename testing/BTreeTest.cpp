@@ -78,9 +78,7 @@ TID toTID(uint64_t in){
 template<class T, class CMP>
 void test(uint64_t n) {
     // Set up stuff, you probably have to change something here to match to your interfaces
-    BufferManager bm(64);
-    //TODO: error at element 809676 with 1024 pages in bm
-    //TODO: error at element 750141 with 64 pages in bm
+    BufferManager bm(256);
 
     // ...
     uint64_t segment = 3;
