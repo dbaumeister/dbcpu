@@ -187,22 +187,17 @@ private:
         return segmentID + pageID;
     }
 
-    //TODO vererbung lösen lassen
     bool isFull(BTreeNode *node) {
         if (node->isLeaf) return ((BTreeLeaf*)node)->isFull();
         else return ((BTreeInner*)node)->isFull();
     }
 
-
-    //TODO vererbung lösen lassen
     void split(BTreeNode *node, BTreeNode* right, uint64_t rightID) {
         right->isLeaf = node->isLeaf;
         if (node->isLeaf) ((BTreeLeaf *)node)->split(((BTreeLeaf*)right), rightID);
         else ((BTreeInner *)node)->split(((BTreeInner *)right));
     }
 
-
-    //TODO vererbung lösen lassen
     KeyT getHighestKey(BTreeNode* node){
         if(node->isLeaf) return ((BTreeLeaf*)node)->getHighestKey();
         else return ((BTreeInner*)node)->getHighestKey();
@@ -224,19 +219,16 @@ void BTree<KeyT, CompT>::insert(KeyT key, TID &tid) {
 
         split(current, right, rightPageID);
 
-        // 1. fix new page
         BufferFrame *bufferFrameNewRoot = bufferManager.fixPage(createID(numPages), true);
         BTreeInner *newRoot = (BTreeInner *) bufferFrameNewRoot->getData();
         newRoot->isLeaf = false;
         newRoot->numEntries = 0;
 
-        // 2. insert rootPageID (Key is the most right of current) and rightPageID (Key is the most right of right) into new page
         KeyT leftKey = getHighestKey(current);
         KeyT rightKey = getHighestKey(right);
         newRoot->insert(leftKey, rootPageID);
         newRoot->insert(rightKey, rightPageID);
 
-        // 3. set new page as root
         rootPageID = numPages;
         ++numPages;
 
@@ -246,7 +238,6 @@ void BTree<KeyT, CompT>::insert(KeyT key, TID &tid) {
         bufferFrameCurrent = bufferFrameNewRoot;
         current = (BTreeNode*) newRoot;
     }
-
 
     for (; ;) {
         if (current->isLeaf) break;
@@ -266,10 +257,9 @@ void BTree<KeyT, CompT>::insert(KeyT key, TID &tid) {
 
             split(child, right, rightPageID);
 
-            // insert split key/pageid in current
             KeyT leftKey = getHighestKey(child);
             KeyT rightKey = getHighestKey(right);
-            currentInner->updateKeyOfPageID(leftKey, childPageID); //right key already exists in parent node -> just update it
+            currentInner->updateKeyOfPageID(leftKey, childPageID); //link to left page already exists in parent node -> just update it
             currentInner->insert(rightKey, rightPageID);
             hasBeenSplit = true;
 
@@ -281,9 +271,7 @@ void BTree<KeyT, CompT>::insert(KeyT key, TID &tid) {
             continue;
         } //start over with current
 
-        // swap current and child
         bufferManager.unfixPage(bufferFrameCurrent, hasBeenSplit);
-
         bufferFrameCurrent = bufferFrameChild;
         current = child;
     }
@@ -294,7 +282,6 @@ void BTree<KeyT, CompT>::insert(KeyT key, TID &tid) {
     leaf->insert(key, tid);
     ++_size;
     bufferManager.unfixPage(bufferFrameCurrent, true);
-
 }
 
 template<class KeyT, class CompT>
@@ -312,12 +299,9 @@ bool BTree<KeyT, CompT>::erase(KeyT key) {
         BTreeNode *child = (BTreeNode *) bufferFrameChild->getData();
 
         // swap current and child
-        std::swap(bufferFrameChild, bufferFrameCurrent);
-        std::swap(child, current);
-
-        // unfix child bufferframe (the old current)
-        bufferManager.unfixPage(bufferFrameChild, false);
-
+        bufferManager.unfixPage(bufferFrameCurrent, false);
+        bufferFrameCurrent = bufferFrameChild;
+        current = child;
     }
 
     BTreeLeaf *leaf = (BTreeLeaf *)current;
@@ -343,23 +327,15 @@ bool BTree<KeyT, CompT>::lookup(KeyT key, TID &tid) {
         BTreeNode *child = (BTreeNode *) bufferFrameChild->getData();
 
         // swap current and child
-        std::swap(bufferFrameChild, bufferFrameCurrent);
-        std::swap(child, current);
-
-        // unfix child bufferframe (the old current)
-        bufferManager.unfixPage(bufferFrameChild, false);
-
+        bufferManager.unfixPage(bufferFrameCurrent, false);
+        bufferFrameCurrent = bufferFrameChild;
+        current = child;
     }
 
     BTreeLeaf *leaf = (BTreeLeaf *)current;
-    if(leaf->lookup(key, tid)){
-
-        bufferManager.unfixPage(bufferFrameCurrent, false);
-        return true;
-    }
-
+    bool lookup_successful = leaf->lookup(key, tid);
     bufferManager.unfixPage(bufferFrameCurrent, false);
-    return false;
+    return lookup_successful;
 }
 
 
