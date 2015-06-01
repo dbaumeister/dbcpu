@@ -90,16 +90,19 @@ void test(uint64_t n) {
     }
     assert(bTree.size() == n);
 
-    std::cout << "Inserted" << std::endl;
+    printf("Inserted\n");
     // Check if they can be retrieved
     for (uint64_t i = 0; i < n; ++i) {
         TID tid;
+
+        if(!bTree.lookup(getKey<T>(i), tid)) printf("%lu\n", i);
+
         assert(bTree.lookup(getKey<T>(i), tid));
         assert(toUint64(tid) == i * i);
     }
 
 
-    std::cout << "LookedUp" << std::endl;
+    printf("LookedUp\n");
 
     // Delete some values
     for (uint64_t i = 0; i < n; ++i)

@@ -19,7 +19,7 @@ template<class KeyT, class CompT>
 class BTree {
     class BTreeNode {
     public:
-        uint16_t numEntries;
+        uint16_t numEntries = 0;
         bool isLeaf = true;
     };
 
@@ -31,10 +31,6 @@ class BTree {
         };
 
         KeyPage children[(PAGESIZE - sizeof(BTreeNode)) / sizeof(KeyPage)];
-
-        uint64_t getLastPageID() {
-            return children[BTreeNode::numEntries - 1].pageID;
-        }
 
         bool isFull() {
             return (PAGESIZE - sizeof(BTreeNode)) / sizeof(KeyPage) - 1 <= BTreeNode::numEntries;
@@ -56,35 +52,32 @@ class BTree {
             ++BTreeNode::numEntries;
         }
 
-        /*
-         * This method should only be called after a split -> the parent node has to be updated
-         */
-        bool updatePageID(KeyT key, uint64_t newPageID){
-            for(uint16_t i = 0; i < BTreeNode::numEntries; ++i){
-                if(memcmp(&key, &(children[i].key), sizeof(KeyT))){
-                    children[i].pageID = newPageID;
-                    return true;
-                }
-            }
-            return false;
-        }
-
         void split(BTreeInner* right) {
             uint16_t numEntriesLeft = BTreeNode::numEntries / (uint16_t)2;
-            right->BTreeNode::numEntries = BTreeNode::numEntries - numEntriesLeft;
+            right->numEntries = BTreeNode::numEntries - numEntriesLeft;
 
-            memcpy(&right->children[0], &children[numEntriesLeft], right->BTreeNode::numEntries * sizeof(KeyPage));
+            memcpy(&right->children[0], &children[numEntriesLeft], right->numEntries * sizeof(KeyPage));
             BTreeNode::numEntries = numEntriesLeft;
         }
 
-        uint64_t getChildID(KeyT key) {
-            CompT c;
+        void updateKeyOfPageID(KeyT key, uint64_t pageID){
             for(uint16_t i = 0; i < BTreeNode::numEntries; ++i){
-                if(c(key, children[i].key)){
+                if(memcmp(&pageID, &children[i].pageID, sizeof(uint64_t)) == 0){
+                    children[i].key = key;
+                    return;
+                }
+            }
+        }
+
+        uint64_t getChildID(KeyT key) {
+            CompT comp;
+            uint16_t i;
+            for(i = 0; i < BTreeNode::numEntries - 1; ++i){
+                if(!comp(children[i].key, key)){ // key not bigger than this entry -> key <= children[i].key
                     return children[i].pageID;
                 }
             }
-            return 0;
+            return children[i].pageID; //return last pageID
         }
 
         KeyT getHighestKey(){
@@ -146,9 +139,9 @@ class BTree {
             rightNeighbor = rightID;
 
             uint16_t numEntriesLeft = BTreeNode::numEntries / (uint16_t)2;
-            right->BTreeNode::numEntries = BTreeNode::numEntries - numEntriesLeft;
+            right->numEntries = BTreeNode::numEntries - numEntriesLeft;
 
-            memcpy(&right->entries[0], &entries[numEntriesLeft], right->BTreeNode::numEntries * sizeof(KeyTID));
+            memcpy(&right->entries[0], &entries[numEntriesLeft], right->numEntries * sizeof(KeyTID));
             BTreeNode::numEntries = numEntriesLeft;
         }
 
@@ -235,6 +228,7 @@ void BTree<KeyT, CompT>::insert(KeyT key, TID &tid) {
         BufferFrame *bufferFrameNewRoot = bufferManager.fixPage(createID(numPages), true);
         BTreeInner *newRoot = (BTreeInner *) bufferFrameNewRoot->getData();
         newRoot->isLeaf = false;
+        newRoot->numEntries = 0;
 
         // 2. insert rootPageID (Key is the most right of current) and rightPageID (Key is the most right of right) into new page
         KeyT leftKey = getHighestKey(current);
@@ -244,13 +238,13 @@ void BTree<KeyT, CompT>::insert(KeyT key, TID &tid) {
 
         // 3. set new page as root
         rootPageID = numPages;
-        numPages++;
+        ++numPages;
 
-        std::swap(bufferFrameNewRoot, bufferFrameCurrent);
-        current = (BTreeNode*) newRoot;
-
-        bufferManager.unfixPage(bufferFrameNewRoot, true);
+        bufferManager.unfixPage(bufferFrameCurrent, true);
         bufferManager.unfixPage(bufferFrameRight, true);
+
+        bufferFrameCurrent = bufferFrameNewRoot;
+        current = (BTreeNode*) newRoot;
     }
 
 
@@ -270,26 +264,28 @@ void BTree<KeyT, CompT>::insert(KeyT key, TID &tid) {
             BufferFrame* bufferFrameRight = bufferManager.fixPage(createID(rightPageID), true);
             BTreeNode *right = (BTreeNode*) bufferFrameRight->getData();
 
-
             split(child, right, rightPageID);
 
             // insert split key/pageid in current
             KeyT leftKey = getHighestKey(child);
             KeyT rightKey = getHighestKey(right);
-            currentInner->insert(leftKey, childPageID);
-            currentInner->updatePageID(rightKey, rightPageID); //right key already exists in parent node -> just update it
+            currentInner->updateKeyOfPageID(leftKey, childPageID); //right key already exists in parent node -> just update it
+            currentInner->insert(rightKey, rightPageID);
             hasBeenSplit = true;
 
             bufferManager.unfixPage(bufferFrameRight, true);
         }
 
+        if(hasBeenSplit) {
+            bufferManager.unfixPage(bufferFrameChild, true);
+            continue;
+        } //start over with current
+
         // swap current and child
-        std::swap(bufferFrameChild, bufferFrameCurrent);
-        std::swap(child, current);
+        bufferManager.unfixPage(bufferFrameCurrent, hasBeenSplit);
 
-        // unfix child bufferframe (the old current)
-        bufferManager.unfixPage(bufferFrameChild, hasBeenSplit);
-
+        bufferFrameCurrent = bufferFrameChild;
+        current = child;
     }
 
     //We always enter a non-full leaf
@@ -298,6 +294,7 @@ void BTree<KeyT, CompT>::insert(KeyT key, TID &tid) {
     leaf->insert(key, tid);
     ++_size;
     bufferManager.unfixPage(bufferFrameCurrent, true);
+
 }
 
 template<class KeyT, class CompT>
