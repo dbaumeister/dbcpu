@@ -78,8 +78,7 @@ TID toTID(uint64_t in){
 template<class T, class CMP>
 void test(uint64_t n) {
     // Set up stuff, you probably have to change something here to match to your interfaces
-    BufferManager bm(256);
-
+    BufferManager bm(64);
     // ...
     uint64_t segment = 3;
     BTree<T, CMP> bTree(bm, segment);
