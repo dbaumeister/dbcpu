@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <iostream>
+#include <sstream>
 
 #include "buffer/BufferManager.h"
 #include "slottedpages/segment/SPSegment.h"
+#include "operators/Register.h"
 
 void printArguments(int argc, const char* argv[]);
 void testSlottedPageInsertWithRandomInserts(SlottedPage& sp);
@@ -10,85 +12,45 @@ void testSlottedPageRemove(SlottedPage& sp);
 void testSlottedPage();
 void testSPSegment();
 
+void testRegisters();
+
+std::string intToString(int i) {
+    std::stringstream ss;
+    ss << i;
+    std::string str(ss.str());
+    return str;
+}
+
 int main(int argc, const char* argv[])
 {
+    testRegisters();
 
     return 0;
 }
 
 
-void testSPSegment(){
-    BufferManager* bm = new BufferManager(64);
-    uint16_t numSegments = 4;
-    SPSegment* spSegments[numSegments];
-
-    for(uint16_t i = 0; i <  numSegments; ++i){
-        spSegments[i] = new SPSegment(*bm, i+1);
+void testRegisters(){
+    Register<sizeof(int)> integerRegister(INTEGER_REGISTER);
+    assert(integerRegister.getType() == INTEGER_REGISTER);
+    for(int i = 0; i < 1000 * 1000; ++i){
+        integerRegister.setInteger(i);
+        int j = integerRegister.getInteger();
+        assert(i == j);
     }
 
-    std::vector<TID> tupleIDs[numSegments];
+    const unsigned stringsize = 20;
+    Register<stringsize * sizeof(char)> stringRegister(STRING_REGISTER);
+    assert(stringRegister.getType() == STRING_REGISTER);
+    for(int i = 0; i < 1000; ++i){
+        std::string str = intToString(i);
+        assert(str.size() < stringsize);
+        stringRegister.setString(str);
+        std::string j = stringRegister.getString();
+        assert(str == j);
 
-    size_t len = 120;
-    void* dataptr = malloc(1024);
-    Record record(len, (const char*)dataptr);
-    Record recordBig(len + 2000, (const char*)dataptr);
-    Record recordSmall(len - 2, (const char*)dataptr);
-
-    TID tid = spSegments[0]->insert(record);
-    spSegments[0]->insert(recordBig);
-    spSegments[0]->insert(recordBig);
-    spSegments[0]->update(tid, record);
-    spSegments[0]->update(tid, recordBig);
-    spSegments[0]->update(tid, recordSmall);
-    spSegments[0]->remove(tid);
-
-    free(dataptr);
-
-    for(uint16_t i = 0; i <  numSegments; ++i){
-        delete(spSegments[i]);
     }
-    delete(bm);
 }
 
-void testSlottedPage(){
-    SlottedPage sp;
-    testSlottedPageInsertWithRandomInserts(sp);
-    testSlottedPageRemove(sp);
-    testSlottedPageInsertWithRandomInserts(sp);
-    testSlottedPageRemove(sp);
-}
-
-void testSlottedPageRemove(SlottedPage& sp){
-
-    std::cout << "Fragmented space: " << sp.header.fragmentedSpace << " bytes." << std::endl;
-    for(uint16_t i = 0; i < sp.header.slotCount; ++i){
-        sp.remove(i);
-        std::cout << "Fragmented space: " << sp.header.fragmentedSpace << " bytes." << std::endl;
-    }
-    std::cout << "Free space after defrag: ";
-    std::cout << sp.defrag() << " bytes." << std::endl;
-}
-
-void testSlottedPageInsertWithRandomInserts(SlottedPage& sp){
-    char* data1 = (char*)malloc(PAGESIZE);
-    for(int i = 0; ;++i){
-
-        std::cout << "Free space left: " << sp.getFreeSpaceInBytes() << " bytes." << std::endl;
-
-        uint16_t lenInBytes = ((double)rand() / RAND_MAX) * 64;
-        if(!sp.hasEnoughSpace(lenInBytes)) {
-            std::cout << "Thats not enough for " << lenInBytes
-                << " bytes. (Consider Slot size of " << sizeof(Slot) << " bytes.)" << std::endl;
-            break;
-        }
-
-        std::cout << "Insert " << lenInBytes << " bytes." << std::endl;
-        uint16_t slotID = sp.insertNewSlot(data1, lenInBytes);
-        std::cout << "Got slotID: " << slotID << std::endl;
-    }
-
-    free(data1);
-}
 
 void printArguments(int argc, const char* argv[]){
     printf("argc: %d\n", argc);

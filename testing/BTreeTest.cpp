@@ -78,15 +78,16 @@ TID toTID(uint64_t in){
 template<class T, class CMP>
 void test(uint64_t n) {
     // Set up stuff, you probably have to change something here to match to your interfaces
-    BufferManager bm(64);
+    BufferManager bm(4096);
     // ...
     uint64_t segment = 3;
     BTree<T, CMP> bTree(bm, segment);
 
     // Insert values
-    for (uint64_t i = 0; i < n; ++i){
+    for (uint64_t i = n-1; i >=0; --i){
         TID tid = toTID(i * i);
         bTree.insert(getKey<T>(i), tid);
+        if(i == 0) break;
     }
     assert(bTree.size() == n);
 
@@ -134,12 +135,12 @@ int main(int argc, char *argv[]) {
     const uint64_t n = (argc == 2) ? strtoul(argv[1], NULL, 10) : 1000 * 1000ul;
 
     // Test index with 64bit unsigned integers
-    //test<uint64_t, MyCustomUInt64Cmp>(n);
+    test<uint64_t, MyCustomUInt64Cmp>(n);
 
     // Test index with 20 character strings
     test<Char<20>, MyCustomCharCmp<20>>(n);
 
     // Test index with compound key
-    //test<IntPair, MyCustomIntPairCmp>(n);
+    test<IntPair, MyCustomIntPairCmp>(n);
     return 0;
 }
