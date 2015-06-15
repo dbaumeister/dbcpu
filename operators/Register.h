@@ -17,10 +17,10 @@
 /*
  * Init with size in bytes as template parameter and type of register as constructor parameter
  */
-template <unsigned len>
+
 class Register {
 public:
-    Register(unsigned type) : type(type){
+    Register(unsigned type, unsigned len) : type(type), len(len){
         bool isCorrectRegisterType = type == STRING_REGISTER || type == INTEGER_REGISTER;
         assert(isCorrectRegisterType);
 
@@ -66,35 +66,26 @@ public:
     }
 
 private:
-    unsigned type;
+    unsigned type, len;
     void* value;
 
 
 };
 
+class StringRegister : public Register {
+public:
+    StringRegister() : Register(STRING_REGISTER, 20){}
+};
+
+class IntegerRegister : public Register {
+public:
+    IntegerRegister() : Register(INTEGER_REGISTER, sizeof(int)){}
+};
 
 
-template <unsigned len>
-bool operator ==(const Register<len>& left, const Register<len>& right){
+bool operator ==(const Register& left, const Register& right);
 
-    if(left.getType() == right.getType()){ //same type needed
-        if(left.getType() == STRING_REGISTER) return left.getString() == right.getString();
-        else if(left.getType() == INTEGER_REGISTER) return left.getInteger() == right.getInteger();
-        else return false;
-
-    } else
-        return false;
-
-}
-
-template <unsigned len>
-bool operator <(const Register<len>& left, const Register<len>& right){
-    assert(left.getType() == right.getType()); //same type needed
-
-    if(left.getType() == STRING_REGISTER) return left.getString() < right.getString();
-    else if(left.getType() == INTEGER_REGISTER) return left.getInteger() < right.getInteger();
-    else return false;
-}
+bool operator <(const Register& left, const Register& right);
 
 
 #endif //PROJECT_REGISTER_H

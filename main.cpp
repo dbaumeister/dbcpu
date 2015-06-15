@@ -25,16 +25,27 @@ std::string intToString(int i) {
 
 int main(int argc, const char* argv[])
 {
+
     testRegisters();
     testRegisterEqualComparison();
     testRegisterLessThanComparison();
+
+    StringRegister r1;
+    StringRegister r2;
+    IntegerRegister r3;
+
+    std::vector<Register*> registers;
+    registers.push_back(&r1);
+    registers.push_back(&r2);
+    registers.push_back(&r3);
+
     return 0;
 }
 
 
 void testRegisterLessThanComparison(){
-    Register<sizeof(int)> integerRegisterA(INTEGER_REGISTER);
-    Register<sizeof(int)> integerRegisterB(INTEGER_REGISTER);
+    IntegerRegister integerRegisterA;
+    IntegerRegister integerRegisterB;
 
     for(int i = 0; i < 1000; ++i){
 
@@ -46,8 +57,8 @@ void testRegisterLessThanComparison(){
     }
 
     const unsigned stringsize = 20;
-    Register<stringsize * sizeof(char)> stringRegisterA(STRING_REGISTER);
-    Register<stringsize * sizeof(char)> stringRegisterB(STRING_REGISTER);
+    StringRegister stringRegisterA;
+    StringRegister stringRegisterB;
 
     for(int i = 0; i < 8; ++i){ //Keep in mind: "9" > "10" (lexicographic sorting)
         std::string strA = intToString(i);
@@ -67,8 +78,8 @@ void testRegisterLessThanComparison(){
 
 void testRegisterEqualComparison(){
 
-    Register<sizeof(int)> integerRegisterA(INTEGER_REGISTER);
-    Register<sizeof(int)> integerRegisterB(INTEGER_REGISTER);
+    IntegerRegister integerRegisterA;
+    IntegerRegister integerRegisterB;
 
     for(int i = 0; i < 1000; ++i){
 
@@ -86,8 +97,8 @@ void testRegisterEqualComparison(){
     }
 
     const unsigned stringsize = 20;
-    Register<stringsize * sizeof(char)> stringRegisterA(STRING_REGISTER);
-    Register<stringsize * sizeof(char)> stringRegisterB(STRING_REGISTER);
+    StringRegister stringRegisterA;
+    StringRegister stringRegisterB;
 
     for(int i = 0; i < 1000; ++i){
         std::string str = intToString(i);
@@ -111,7 +122,7 @@ void testRegisterEqualComparison(){
 }
 
 void testRegisters(){
-    Register<sizeof(int)> integerRegister(INTEGER_REGISTER);
+    IntegerRegister integerRegister;
     assert(integerRegister.getType() == INTEGER_REGISTER);
     for(int i = 0; i < 1000 * 1000; ++i){
         integerRegister.setInteger(i);
@@ -120,7 +131,7 @@ void testRegisters(){
     }
 
     const unsigned stringsize = 20;
-    Register<stringsize * sizeof(char)> stringRegister(STRING_REGISTER);
+    StringRegister stringRegister;
     assert(stringRegister.getType() == STRING_REGISTER);
     for(int i = 0; i < 1000; ++i){
         std::string str = intToString(i);
