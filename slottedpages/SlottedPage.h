@@ -7,8 +7,8 @@
 
 #include <stdint.h>
 #include <string.h>
-#include "../../buffer/BufferFrame.h"
-#include "../Record.h"
+#include "../buffer/BufferFrame.h"
+#include "../schema/Record.h"
 #include "TID.h"
 
 const uint8_t BM_DEFAULT = ~(uint8_t)0;

@@ -5,7 +5,7 @@
 #ifndef PROJECT_TABLESCAN_H
 #define PROJECT_TABLESCAN_H
 
-#include "../slottedpages/segment/Schema.h"
+#include "../schema/Schema.h"
 #include "Register.h"
 
 class TableScan {

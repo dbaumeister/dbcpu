@@ -11,9 +11,9 @@
 
 #include "SlottedPage.h"
 #include "TID.h"
-#include "../../buffer/BufferManager.h"
-#include "../../buffer/BufferFrame.h"
-#include "../Record.h"
+#include "../buffer/BufferManager.h"
+#include "../buffer/BufferFrame.h"
+#include "../schema/Record.h"
 
 
 class SPSegment {

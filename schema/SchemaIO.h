@@ -6,7 +6,7 @@
 #define PROJECT_SCHEMAIO_H
 
 #include "Schema.h"
-#include "../../buffer/BufferManager.h"
+#include "../buffer/BufferManager.h"
 
 class SchemaIO {
 public:

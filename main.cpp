@@ -3,7 +3,7 @@
 #include <sstream>
 
 #include "buffer/BufferManager.h"
-#include "slottedpages/segment/SPSegment.h"
+#include "slottedpages/SPSegment.h"
 #include "operators/Register.h"
 
 void printArguments(int argc, const char* argv[]);
