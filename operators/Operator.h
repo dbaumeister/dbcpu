@@ -9,7 +9,7 @@
 #include "Register.h"
 
 class Operator {
-
+public:
     virtual void open() = 0;
 
     virtual bool next() = 0;

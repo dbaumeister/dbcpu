@@ -9,7 +9,7 @@
 #include "Operator.h"
 #include "../relation/Relation.h"
 
-class TableScan : Operator{
+class TableScan : public Operator{
 public:
     TableScan(const Relation& relation) : relation(relation), index(0), registers(relation.numAttr){}
 
