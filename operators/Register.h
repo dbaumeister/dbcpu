@@ -56,12 +56,12 @@ public:
         return type;
     }
 
-    int getHashValue(){
+    size_t getHashValue(){
         if(type == STRING_REGISTER){
-            return atoi(getString().c_str()); //TODO evaluate usability of this hash function
+            return std::hash<std::string>()(getString()); //TODO evaluate usability of this hash function
         }
         else if(type == INTEGER_REGISTER){
-            return getInteger();
+            return (size_t)getInteger();
         }
     }
 
