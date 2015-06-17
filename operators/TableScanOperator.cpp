@@ -29,6 +29,7 @@ bool TableScan::next() {
                 currentTID.slotID++;
                 return next();
             }
+            else return false;
         }
     }
     else return false;

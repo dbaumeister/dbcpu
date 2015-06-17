@@ -9,7 +9,7 @@
 
 class ProjectionOperator : public Operator{
 public:
-    ProjectionOperator(const std::vector<int>& projectionIndices, Operator& child)
+    ProjectionOperator(const std::vector<unsigned>& projectionIndices, Operator& child)
             : child(child), projectionIndices(projectionIndices){}
 
     void open();
@@ -21,8 +21,9 @@ public:
     void close();
 
 private:
+    std::vector<Register*> registers;
     Operator& child;
-    const std::vector<int>& projectionIndices;
+    const std::vector<unsigned>& projectionIndices;
 
 };
 
