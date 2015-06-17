@@ -10,9 +10,12 @@
 #include <string.h>
 #include <assert.h>
 #include <iostream>
+#include "../Tuple.h"
 
 #define STRING_REGISTER 1
 #define INTEGER_REGISTER 2
+
+
 
 /*
  * Init with size in bytes as template parameter and type of register as constructor parameter
@@ -58,7 +61,7 @@ public:
 
     size_t getHashValue(){
         if(type == STRING_REGISTER){
-            return std::hash<std::string>()(getString()); //TODO evaluate usability of this hash function
+            return std::hash<std::string>()(getString());
         }
         else if(type == INTEGER_REGISTER){
             return (size_t)getInteger();
@@ -74,7 +77,7 @@ private:
 
 class StringRegister : public Register {
 public:
-    StringRegister() : Register(STRING_REGISTER, 20){}
+    StringRegister() : Register(STRING_REGISTER, TUPLE_STRING_SIZE){}
 };
 
 class IntegerRegister : public Register {

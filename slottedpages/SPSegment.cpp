@@ -169,14 +169,12 @@ Record &SPSegment::lookup(TID tid) {
     SlottedPage* sp = (SlottedPage*) bufferFrame->getData();
 
     if(!sp->isValid(tid.slotID)){
-        printf("SlotID of TID not valid. (PageID: %lu, SlotID: %u)\n", tid.pageID, tid.slotID);
         bufferManager.unfixPage(bufferFrame, false);
-        throw new std::invalid_argument("SlotID of TID not valid.");
+        throw SLOTID_OUT_OF_BOUNDS_EXCEPTION;
     }
     else if(sp->isRemoved(tid.slotID)){
-        printf("Lookup of removed TID (PageID: %lu, SlotID: %u)\n", tid.pageID, tid.slotID);
         bufferManager.unfixPage(bufferFrame, false);
-        throw new std::invalid_argument("Lookup of removed TID.");
+        throw SLOTID_TO_REMOVED_SLOT_EXCEPTION;
     }
     else if(sp->isIndirection(tid.slotID)){
         TID indirectionTID = sp->getIndirection(tid.slotID);

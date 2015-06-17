@@ -15,6 +15,8 @@
 #include "../buffer/BufferFrame.h"
 #include "../schema/Record.h"
 
+#define SLOTID_OUT_OF_BOUNDS_EXCEPTION 1
+#define SLOTID_TO_REMOVED_SLOT_EXCEPTION 2
 
 class SPSegment {
 public:
@@ -26,6 +28,10 @@ public:
     bool remove(TID tid);
     bool update(TID tid, Record& record);
     Record& lookup(TID tid);
+
+    uint64_t getPageCount() {
+        return slottedPageCount;
+    }
 
 private:
     BufferManager& bufferManager;

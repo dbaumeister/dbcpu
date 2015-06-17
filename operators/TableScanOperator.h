@@ -7,11 +7,13 @@
 
 #include "Register.h"
 #include "Operator.h"
-#include "../relation/Relation.h"
+#include "../slottedpages/SPSegment.h"
+#include "../Tuple.h"
+
 
 class TableScan : public Operator{
 public:
-    TableScan(const Relation& relation) : relation(relation), index(0), registers(relation.numAttr){}
+    TableScan(SPSegment* segment) : segment(segment){}
 
     void open();
 
@@ -22,12 +24,11 @@ public:
     void close();
 
 private:
-    const Relation& relation;
-    unsigned index;
+    SPSegment* segment;
+    TID currentTID;
     std::vector<Register*> registers;
 
-    void fillRegister(int i);
-    void initRegister(int i);
+    void fillRegisters(const Tuple& tuple);
 
 };
 

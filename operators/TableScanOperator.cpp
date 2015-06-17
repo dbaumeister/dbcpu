@@ -4,27 +4,32 @@
 
 #include "TableScanOperator.h"
 
-void TableScan::fillRegister(int i){
-    Attribute* a = relation.tuples[index]->attributes[i];
-    if(a->getType() == STRINGTYPE){
-        registers[i]->setString(a->getString());
-    }
-    else if (a->getType() == INTEGERTYPE){
-        registers[i]->setInteger(a->getInteger());
-    }
-    else {
-        std::cerr << "Attribute-Type not supported!" << std::endl;
-        exit(1);
-    }
+void TableScan::fillRegisters(const Tuple& tuple){
+    registers[0]->setInteger(tuple.a);
+    registers[1]->setInteger(tuple.b);
+    registers[2]->setInteger(tuple.c);
+    registers[3]->setString(std::string(tuple.d));
 }
 
 bool TableScan::next() {
-    if(index < relation.tuples.size()) {
-        for(int i = 0; i < relation.numAttr; ++i){
-            fillRegister(i);
+    if(currentTID.pageID < segment->getPageCount()){
+        try {
+            Tuple* tuple = (Tuple*)(void*)&segment->lookup(currentTID); //TODO evaluate if this very unpleasent cast works
+            fillRegisters(*tuple);
+            currentTID.slotID++;
+            return true;
+
         }
-        index++;
-        return true;
+        catch(int e) {
+            if(e == SLOTID_OUT_OF_BOUNDS_EXCEPTION){
+                currentTID.pageID++;
+                return next();
+            }
+            else if(e == SLOTID_TO_REMOVED_SLOT_EXCEPTION){
+                currentTID.slotID++;
+                return next();
+            }
+        }
     }
     else return false;
 }
@@ -33,35 +38,18 @@ std::vector<Register *> TableScan::getOutput() {
     return registers;
 }
 
-void TableScan::initRegister(int i) {
-    Attribute* a = relation.tuples[0]->attributes[i];
-    if(a->getType() == STRINGTYPE){
-        registers[i] = new StringRegister();
-    }
-    else if (a->getType() == INTEGERTYPE){
-        registers[i] = new IntegerRegister();
-    }
-    else {
-        std::cerr << "Attribute-Type not supported!" << std::endl;
-        exit(1);
-    }
-}
-
 void TableScan::open() {
-    index = 0;
-    if (relation.tuples.size() > 0) {
-        for(int i = 0; i < relation.numAttr; ++i){
-            initRegister(i);
-        }
-    }
+    currentTID.pageID = 0;
+    currentTID.slotID = 0;
+    //ATTENTION: this has to have the same structure as the Tuple struct in Tuple.h
+    registers.push_back(new IntegerRegister());
+    registers.push_back(new IntegerRegister());
+    registers.push_back(new IntegerRegister());
+    registers.push_back(new StringRegister());
 }
 
 void TableScan::close() {
-    if (relation.tuples.size() > 0) {
-        for(Register* r : registers){
-            free(r);
-        }
+    for(int i = 0; i < registers.size(); ++i){
+        free(registers[i]);
     }
 }
-
-
