@@ -10,7 +10,7 @@
 class PrintOperator : public Operator {
 public:
 
-    PrintOperator(std::ostream& stream, Operator* child) : stream(stream), child(child){}
+    PrintOperator(std::ostream& stream, Operator& child) : stream(stream), child(child){}
 
     void open();
 
@@ -22,7 +22,7 @@ public:
 
 private:
     std::ostream& stream;
-    Operator* child;
+    Operator& child;
 };
 
 #endif //PROJECT_PRINTOPERATOR_H

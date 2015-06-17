@@ -163,7 +163,7 @@ bool SPSegment::update(TID tid, Record &record) {
  * Attention!
  * Returned value has to be freed!
  */
-Record &SPSegment::lookup(TID tid) {
+Record &SPSegment::lookup(TID tid) const{
 
     BufferFrame* bufferFrame = bufferManager.fixPage(createID(tid.pageID), false);
     SlottedPage* sp = (SlottedPage*) bufferFrame->getData();
@@ -190,6 +190,6 @@ Record &SPSegment::lookup(TID tid) {
 
 }
 
-uint64_t SPSegment::createID(uint64_t pageID) {
+uint64_t SPSegment::createID(uint64_t pageID) const{
     return segIDShifted + pageID;
 }

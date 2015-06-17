@@ -5,12 +5,12 @@
 #include "PrintOperator.h"
 
 void PrintOperator::open() {
-    child->open();
+    child.open();
 }
 
 bool PrintOperator::next() {
-    if(child->next()){
-        std::vector<Register*> registers = child->getOutput();
+    if(child.next()){
+        std::vector<Register*> registers = child.getOutput();
         for(int i = 0; i < registers.size(); ++i){
             if(registers[i]->getType() == STRING_REGISTER){
                 stream << registers[i]->getString();
@@ -33,5 +33,5 @@ std::vector<Register *> PrintOperator::getOutput() {
 }
 
 void PrintOperator::close() {
-    child->close();
+    child.close();
 }

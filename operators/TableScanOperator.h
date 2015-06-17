@@ -13,7 +13,7 @@
 
 class TableScan : public Operator{
 public:
-    TableScan(SPSegment* segment) : segment(segment){}
+    TableScan(const SPSegment& segment) : segment(segment){}
 
     void open();
 
@@ -24,7 +24,7 @@ public:
     void close();
 
 private:
-    SPSegment* segment;
+    const SPSegment& segment;
     TID currentTID;
     std::vector<Register*> registers;
 

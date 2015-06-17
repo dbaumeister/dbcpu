@@ -27,9 +27,9 @@ public:
     TID insert(Record& record);
     bool remove(TID tid);
     bool update(TID tid, Record& record);
-    Record& lookup(TID tid);
+    Record& lookup(TID tid) const;
 
-    uint64_t getPageCount() {
+    uint64_t getPageCount() const {
         return slottedPageCount;
     }
 
@@ -40,7 +40,7 @@ private:
 
     uint64_t segIDShifted;
 
-    uint64_t createID(uint64_t pageID);
+    uint64_t createID(uint64_t pageID) const;
 };
 
 #endif //PROJECT_SPSEGMENT_H
