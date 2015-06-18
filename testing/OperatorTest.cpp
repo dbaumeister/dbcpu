@@ -15,6 +15,7 @@
 #include "../operators/SelectionOperator.h"
 #include "../operators/ProjectionOperator.h"
 #include "../operators/HashJoinOperator.h"
+#include "../operators/TableScanOperator.h"
 
 class TestOperator : public Operator {
 public:
@@ -76,6 +77,7 @@ void testPrintOperator();
 void testSelectionOperator();
 void testProjectionOperator();
 void testHashJoinOperator();
+void testTableScanOperator();
 
 std::string intToString(int i) {
     std::stringstream ss;
@@ -101,7 +103,43 @@ int main(int argc, const char* argv[])
 
     testHashJoinOperator();
 
+    testTableScanOperator();
+
     return 0;
+}
+
+void testTableScanOperator(){
+    std::cout << "testTableScanOperator" << std::endl;
+
+    BufferManager bm(4096);
+    SPSegment spSegment(bm, 10);
+
+    std::vector<Tuple> tuples;
+    for(int i = 0; i < 10; ++i){
+
+        Tuple t;
+        t.a = i;
+        t.b = i * i;
+        t.c = i + i;
+
+        std::string s = "Str: " + intToString(i);
+        memcpy(&t.d[0], s.c_str(), TUPLE_STRING_SIZE);
+
+        tuples.push_back(t);
+
+        Record r(sizeof(Tuple), (char*)&t);
+        spSegment.insert(r);
+    }
+
+
+    TableScanOperator tableScanOperator(spSegment);
+
+    PrintOperator printOperator(std::cout, tableScanOperator);
+
+    printOperator.open();
+    while(printOperator.next());
+    printOperator.close();
+
 }
 
 
