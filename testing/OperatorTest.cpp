@@ -13,6 +13,8 @@
 #include "../operators/Operator.h"
 #include "../operators/PrintOperator.h"
 #include "../operators/SelectionOperator.h"
+#include "../operators/ProjectionOperator.h"
+#include "../operators/HashJoinOperator.h"
 
 class TestOperator : public Operator {
 public:
@@ -72,6 +74,8 @@ void testRegisterLessThanComparison();
 
 void testPrintOperator();
 void testSelectionOperator();
+void testProjectionOperator();
+void testHashJoinOperator();
 
 std::string intToString(int i) {
     std::stringstream ss;
@@ -93,9 +97,94 @@ int main(int argc, const char* argv[])
 
     testSelectionOperator();
 
+    testProjectionOperator();
+
+    testHashJoinOperator();
+
     return 0;
 }
+
+
+void testHashJoinOperator(){
+    std::cout << "testHashJoinOperator" << std::endl;
+
+    unsigned testNum = 3;
+    TestOperator testOperator(testNum);
+
+    HashJoinOperator hashJoinOperator(0, testOperator, 0, testOperator);
+    PrintOperator printOperator(std::cout, hashJoinOperator);
+
+    printOperator.open();
+    while(printOperator.next());
+    printOperator.close();
+
+}
+
+void testProjectionOperator(){
+
+    std::cout << "testProjectionOperator" << std::endl;
+
+    unsigned testNum = 3;
+
+    TestOperator testOperator(testNum);
+    Register* aRegister = new StringRegister();
+    aRegister->setString("Herbert");
+
+    std::vector<unsigned> indices;
+    indices.push_back(0);
+    indices.push_back(2);
+
+    ProjectionOperator projectionOperator(indices, testOperator);
+
+    projectionOperator.open();
+    while(projectionOperator.next()){
+
+        assert(projectionOperator.getOutput().size() == indices.size());
+    }
+    projectionOperator.close();
+
+    PrintOperator printOperator(std::cout, projectionOperator);
+
+    printOperator.open();
+    while(printOperator.next());
+    printOperator.close();
+
+}
+
+
 void testSelectionOperator(){
+
+    std::cout << "testSelectionOperator" << std::endl;
+
+    unsigned testNum = 3;
+
+    TestOperator testOperator(testNum);
+    Register* aRegister = new StringRegister();
+    aRegister->setString("Herbert");
+
+    SelectionOperator selectionOperator(0, *aRegister, testOperator);
+
+    unsigned count = 0;
+    selectionOperator.open();
+    while(selectionOperator.next()){
+        count++;
+    }
+    selectionOperator.close();
+    assert(count == testNum);
+
+
+    aRegister->setString("H");
+    selectionOperator.open();
+
+    count = 0;
+    selectionOperator.open();
+    while(selectionOperator.next()){
+        count++;
+    }
+    selectionOperator.close();
+    assert(count == 0);
+
+    delete aRegister;
 
 }
 
@@ -217,10 +306,9 @@ void testRegisterSetGet(){
     IntegerRegister r3;
 
     std::string s1 = "Hello World";
-    std::string s2 = "XYZ";
     int i3 = 3;
     r1.setString(s1);
-    r2.setString(s2);
+    r2.setString("XYZ");
     r3.setInteger(i3);
 
     std::vector<Register*> registers;
@@ -229,6 +317,6 @@ void testRegisterSetGet(){
     registers.push_back(&r3);
 
     assert(r1.getString() == s1);
-    assert(r2.getString() == s2);
+    assert(r2.getString() == "XYZ");
     assert(r3.getInteger() == i3);
 }
