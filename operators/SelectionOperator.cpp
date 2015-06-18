@@ -17,7 +17,7 @@ bool SelectionOperator::next() {
         registers.clear();
         std::vector<Register*> r = child.getOutput();
         if(*r[id] == comparisonRegister){
-            registers = r; //TODO check if works
+            registers = r;
             return true;
         } else return false;
     } else return false;

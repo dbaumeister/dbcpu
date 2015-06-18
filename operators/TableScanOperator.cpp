@@ -14,7 +14,7 @@ void TableScanOperator::fillRegisters(const Tuple& tuple){
 bool TableScanOperator::next() {
     if(currentTID.pageID < segment.getPageCount()){
         try {
-            Record* r = &segment.lookup(currentTID); //TODO evaluate if this very unpleasent cast works
+            Record* r = &segment.lookup(currentTID);
             Tuple* tuple = (Tuple*)r->getData();
 
             fillRegisters(*tuple);
