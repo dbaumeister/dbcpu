@@ -9,6 +9,8 @@
 
 class ProjectionOperator : public Operator{
 public:
+    ProjectionOperator() = delete;
+
     ProjectionOperator(const std::vector<unsigned>& projectionIndices, Operator& child)
             : child(child), projectionIndices(projectionIndices){}
 

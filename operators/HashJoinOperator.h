@@ -12,6 +12,8 @@
 class HashJoinOperator : public Operator{
 public:
 
+    HashJoinOperator() = delete;
+
     HashJoinOperator(unsigned leftID, Operator& opLeft, unsigned rightID, Operator& opRight)
             : leftID(leftID), rightID(rightID), opLeft(opLeft), opRight(opRight){}
 

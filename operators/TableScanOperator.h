@@ -11,9 +11,11 @@
 #include "../Tuple.h"
 
 
-class TableScan : public Operator{
+class TableScanOperator : public Operator{
 public:
-    TableScan(const SPSegment& segment) : segment(segment){}
+    TableScanOperator() = delete;
+
+    TableScanOperator(const SPSegment& segment) : segment(segment){}
 
     void open();
 

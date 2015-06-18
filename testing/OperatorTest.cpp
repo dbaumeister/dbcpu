@@ -12,15 +12,16 @@
 #include "../operators/Register.h"
 #include "../operators/Operator.h"
 #include "../operators/PrintOperator.h"
+#include "../operators/SelectionOperator.h"
 
 class TestOperator : public Operator {
 public:
 
     TestOperator(unsigned maxTuples) : maxTuples(maxTuples), index(0) {
 
-        Register* r1 = new StringRegister();
-        Register* r2 = new StringRegister();
-        Register* r3 = new IntegerRegister();
+        StringRegister* r1 = new StringRegister();
+        StringRegister* r2 = new StringRegister();
+        IntegerRegister* r3 = new IntegerRegister();
 
         std::string vorname = "Herbert";
         std::string nachname = "Maier";
@@ -70,6 +71,7 @@ void testRegisterLessThanComparison();
 
 
 void testPrintOperator();
+void testSelectionOperator();
 
 std::string intToString(int i) {
     std::stringstream ss;
@@ -81,17 +83,25 @@ std::string intToString(int i) {
 int main(int argc, const char* argv[])
 {
 
-    //testRegisterSetGet();
-    //testRegisterEqualComparison();
-    //testRegisterLessThanComparison();
+    testRegisterSetGet();
+
+    testRegisterEqualComparison();
+
+    testRegisterLessThanComparison();
+
     testPrintOperator();
+
+    testSelectionOperator();
 
     return 0;
 }
+void testSelectionOperator(){
 
+}
 
 void testPrintOperator(){
-    TestOperator t(10);
+    std::cout << "testPrintOperator" << std::endl;
+    TestOperator t(3);
     PrintOperator p(std::cout, t);
     p.open();
     while(p.next());
@@ -100,6 +110,8 @@ void testPrintOperator(){
 
 
 void testRegisterLessThanComparison(){
+
+    std::cout << "testRegisterLessThanComparison" << std::endl;
     IntegerRegister integerRegisterA;
     IntegerRegister integerRegisterB;
 
@@ -134,6 +146,7 @@ void testRegisterLessThanComparison(){
 
 void testRegisterEqualComparison(){
 
+    std::cout << "testRegisterEqualComparison" << std::endl;
     IntegerRegister integerRegisterA;
     IntegerRegister integerRegisterB;
 
@@ -178,6 +191,7 @@ void testRegisterEqualComparison(){
 }
 
 void testRegisterSetGet(){
+    std::cout << "testRegisterSetGet" << std::endl;
     IntegerRegister integerRegister;
     assert(integerRegister.getType() == INTEGER_REGISTER);
     for(int i = 0; i < 1000 * 1000; ++i){

@@ -4,14 +4,14 @@
 
 #include "TableScanOperator.h"
 
-void TableScan::fillRegisters(const Tuple& tuple){
+void TableScanOperator::fillRegisters(const Tuple& tuple){
     registers[0]->setInteger(tuple.a);
     registers[1]->setInteger(tuple.b);
     registers[2]->setInteger(tuple.c);
     registers[3]->setString(std::string(tuple.d));
 }
 
-bool TableScan::next() {
+bool TableScanOperator::next() {
     if(currentTID.pageID < segment.getPageCount()){
         try {
             Tuple* tuple = (Tuple*)(void*)&segment.lookup(currentTID); //TODO evaluate if this very unpleasent cast works
@@ -35,11 +35,11 @@ bool TableScan::next() {
     else return false;
 }
 
-std::vector<Register *> TableScan::getOutput() {
+std::vector<Register *> TableScanOperator::getOutput() {
     return registers;
 }
 
-void TableScan::open() {
+void TableScanOperator::open() {
     currentTID.pageID = 0;
     currentTID.slotID = 0;
     //ATTENTION: this has to have the same structure as the Tuple struct in Tuple.h
@@ -49,7 +49,7 @@ void TableScan::open() {
     registers.push_back(new StringRegister());
 }
 
-void TableScan::close() {
+void TableScanOperator::close() {
     for(int i = 0; i < registers.size(); ++i){
         delete registers[i];
     }

@@ -10,6 +10,8 @@
 class SelectionOperator : public Operator{
 public:
 
+    SelectionOperator() = delete;
+
     SelectionOperator(unsigned id, const Register& comparisonRegister, Operator& child)
             : id(id), comparisonRegister(comparisonRegister), child(child) {}
 

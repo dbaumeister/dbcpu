@@ -23,6 +23,8 @@
 
 class Register {
 public:
+    Register() = delete;
+
     Register(unsigned type, unsigned len) : type(type), len(len){
         bool isCorrectRegisterType = type == STRING_REGISTER || type == INTEGER_REGISTER;
         assert(isCorrectRegisterType);
@@ -47,12 +49,13 @@ public:
     }
 
     std::string getString() const{
-
-        return *(std::string*) value;
+        std::string strVal((char*) value);
+        return strVal;
     }
 
     void setString(const std::string& strVal){
-        memcpy(value, &strVal, len);
+        const char* c = strVal.c_str();
+        memcpy(value, c, len);
     }
 
     unsigned  getType() const{

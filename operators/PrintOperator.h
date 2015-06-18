@@ -10,6 +10,8 @@
 class PrintOperator : public Operator {
 public:
 
+    PrintOperator() = delete;
+
     PrintOperator(std::ostream& stream, Operator& child) : stream(stream), child(child){}
 
     void open();
