@@ -51,6 +51,6 @@ void TableScan::open() {
 
 void TableScan::close() {
     for(int i = 0; i < registers.size(); ++i){
-        free(registers[i]);
+        delete registers[i];
     }
 }

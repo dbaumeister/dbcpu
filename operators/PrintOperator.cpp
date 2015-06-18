@@ -13,7 +13,7 @@ bool PrintOperator::next() {
         std::vector<Register*> registers = child.getOutput();
         for(int i = 0; i < registers.size(); ++i){
             if(registers[i]->getType() == STRING_REGISTER){
-                stream << registers[i]->getString();
+                stream << registers[i]->getString(); //TODO Error happens here
             }
             else if(registers[i]->getType() == INTEGER_REGISTER){
                 stream << registers[i]->getInteger();
