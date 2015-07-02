@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
         for (size_t i = range.begin(); i != range.end(); ++i){
 
             R[i] = rand_r(&seed) % sizeR;
-//            std::cout << "R[" << i << "]: " << R[i] << std::endl;
+            std::cout << "R[" << i << "]: " << R[i] << std::endl;
         }
     });
 
@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
         for (size_t i = range.begin(); i != range.end(); ++i){
 
             S[i] = rand_r(&seed) % sizeR;
-//            std::cout << "S[" << i << "]: " << S[i] << std::endl;
+            std::cout << "S[" << i << "]: " << S[i] << std::endl;
         }
     });
 
